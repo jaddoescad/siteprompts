@@ -1,113 +1,344 @@
-import Image from "next/image";
+'use client'
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import parse, { Element } from 'html-react-parser';
+import dynamic from 'next/dynamic';
+import { loader } from '@monaco-editor/react';
+import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels'
+import { Input } from '@/components/ui/Input';
+import { ChevronDown, ChevronRight } from 'lucide-react';
+import { Loader2 } from 'lucide-react'; // Import Loader2 icon
+import { Switch } from '@/components/ui/Switch'; // Note the capital 'S' in Switch
+import { highlightElementUtil } from '@/lib/highlightelement';
+import { getParentOrFullElement } from '@/lib/getParentOrFullElement';
+import { replaceParent } from '@/lib/replaceParent';
 
-export default function Home() {
+const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
+  ssr: false,
+});
+
+loader.config({
+  paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.33.0/min/vs' },
+});
+
+const TreeNode = ({ node, onNodeClick, path }) => {
+  const [isOpen, setIsOpen] = useState(true);
+  const hasChildren = node.children && node.children.length > 0;
+
+  const handleClick = (e) => {
+    e.stopPropagation();
+    onNodeClick(node, path);
+  };
+
+  if (node.type === 'text') {
+    return node.data.trim() ? (
+      <div className='ml-4 text-gray-600'>{node.data}</div>
+    ) : null;
+  }
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">src/app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:size-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
+    <div className='ml-4'>
+      <div className='flex items-center'>
+        {hasChildren ? (
+          <button onClick={() => setIsOpen(!isOpen)} className='mr-1'>
+            {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+          </button>
+        ) : (
+          <span className='mr-1 h-4 w-4' />
+        )}
+        <span className='cursor-pointer text-blue-600' onClick={handleClick}>
+          &lt;{node.name}&gt;
+        </span>
       </div>
+      {isOpen && hasChildren && (
+        <div className='ml-4'>
+          {node.children
+            .filter(
+              (child) => child.type !== 'text' || child.data.trim() !== ''
+            )
+            .map((child, idx) => (
+              <TreeNode
+                key={idx}
+                node={child}
+                onNodeClick={onNodeClick}
+                path={`${path}-${idx + 1}`}
+              />
+            ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
-      <div className="relative z-[-1] flex place-items-center before:absolute before:h-[300px] before:w-full before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 sm:before:w-[480px] sm:after:w-[240px] before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
+const HTMLParserComponent = () => {
+  const [originalHtmlContent, setOriginalHtmlContent] = useState(`
+  <div class="bg-gray-100 h-full min-h-screen flex flex-col">
+  <header class="p-4">
+<nav class="container mx-auto flex items-center justify-between">
+<div class="flex items-center">
+  <div class="mr-4 h-[48px]">
+      <img src="https://i.pinimg.com/736x/e8/41/1e/e8411ecd9caa00c31d26607b51dc4851.jpg" alt="Logo" class="h-full w-full object-contain"></img>
+  </div>
+  <ul class="flex space-x-4">
+      <li><a href="#" class="text-blue-600 hover:text-blue-800">Home</a></li>
+      <li><a href="#" class="text-blue-600 hover:text-blue-800">About</a></li>
+      <li><a href="#" class="text-blue-600 hover:text-blue-800">Contact</a></li>
+  </ul>
+</div>
+<button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Contact Us</button>
+</nav>
+</header>
+
+  <main class="flex-grow container mx-auto p-4">
+      <h1 class="text-3xl font-bold mb-4">Welcome to Our Website</h1>
+      <p class="mb-4">This is the main content area of our simple website. You can add more sections, images, and other content here.</p>
+  </main>
+
+  <footer class="bg-gray-200 p-6 mt-auto">
+<div class="container mx-auto px-4 max-w-6xl">
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div>
+          <h3 class="font-bold text-lg mb-2">About Us</h3>
+          <p class="text-sm text-gray-600">Simple Website is dedicated to providing quality content and services.</p>
+      </div>
+      <div>
+          <h3 class="font-bold text-lg mb-2">Quick Links</h3>
+          <ul class="space-y-2">
+              <li><a href="#" class="text-blue-600 hover:text-blue-800">Home</a></li>
+              <li><a href="#" class="text-blue-600 hover:text-blue-800">Services</a></li>
+              <li><a href="#" class="text-blue-600 hover:text-blue-800">Contact</a></li>
+          </ul>
+      </div>
+      <div class="md:text-right">
+          <h3 class="font-bold text-lg mb-2">Follow Us</h3>
+          <div class="flex md:justify-end space-x-4">
+              <a href="#" class="text-gray-600 hover:text-gray-800"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"></path></svg></a>
+              <a href="#" class="text-gray-600 hover:text-gray-800"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"></path></svg></a>
+              <a href="#" class="text-gray-600 hover:text-gray-800"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"></svg></a></div></div></div></div></footer>
+</div>
+  `);
+  const [command, setCommand] = useState('');
+  const [selectedNodeContent, setSelectedNodeContent] = useState('');
+  const [selectedNodePath, setSelectedNodePath] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isParentMode, setIsParentMode] = useState(false);
+  const [parentContent, setParentContent] = useState('');
+  const [previewHtmlContent, setPreviewHtmlContent] = useState(originalHtmlContent);
+
+  const editorRef = useRef(null);
+
+  const getNodeContent = (node) => {
+    if (node.type === 'text') {
+      return node.data;
+    }
+    const attributes = Object.entries(node.attribs || {})
+      .map(([key, value]) => `${key}="${value}"`)
+      .join(' ');
+    const openTag = `<${node.name}${attributes ? ' ' + attributes : ''}>`;
+    const closeTag = `</${node.name}>`;
+    const childContent = node.children
+      ? node.children.map(getNodeContent).join('')
+      : '';
+    return `${openTag}${childContent}${closeTag}`;
+  };
+
+  const handleNodeClick = (node, path) => {
+    const content = getNodeContent(node);
+    setSelectedNodeContent(content);
+    setParentContent(getParentOrFullElement(content));
+    const newPath = path.split('-').map(Number);
+    setSelectedNodePath(newPath);
+    
+    // Apply highlighting immediately
+    const newPreviewContent = highlightElementUtil(originalHtmlContent, newPath);
+    setPreviewHtmlContent(newPreviewContent);
+  };
+
+  useEffect(() => {
+    setSelectedNodeContent(originalHtmlContent);
+    setParentContent(getParentOrFullElement(originalHtmlContent));
+  }, []);
+
+  useEffect(() => {
+    if (selectedNodeContent !== '' && !isParentMode) {
+      updateHtmlContent(selectedNodeContent);
+    }
+  }, [selectedNodeContent, isParentMode]);
+
+  const handleEditorChange = (value) => {
+    if (isParentMode) {
+      const newParentContent = value;
+      setParentContent(newParentContent);
+      // Update selectedNodeContent when parent is changed
+      const newSelectedNodeContent = replaceParent(newParentContent, selectedNodeContent);
+      setSelectedNodeContent(newSelectedNodeContent);
+      // Update the HTML content
+      updateHtmlContent(newSelectedNodeContent);
+    } else {
+      setSelectedNodeContent(value);
+    }
+  };
+
+
+  const handleToggleChange = (e) => {
+    const checked = e.target.checked;
+    setIsParentMode(checked);
+  };
+
+  const handleEditorDidMount = (editor) => {
+    editorRef.current = editor;
+  };
+
+  const updateHtmlContent = (newContent) => {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(previewHtmlContent, 'text/html');
+
+    let currentElement = doc.body.firstElementChild;
+    for (let i = 1; i < selectedNodePath.length; i++) {
+      const index = selectedNodePath[i] - 1;
+      if (
+        currentElement &&
+        index >= 0 &&
+        index < currentElement.children.length
+      ) {
+        currentElement = currentElement.children[index];
+      } else {
+        console.error('Invalid path');
+        return;
+      }
+    }
+
+    if (currentElement) {
+      currentElement.outerHTML = newContent;
+      const newOriginalContent = doc.body.innerHTML;
+      setOriginalHtmlContent(newOriginalContent);
+      
+      // Apply highlighting to the updated content
+      const newPreviewContent = highlightElementUtil(newOriginalContent, selectedNodePath);
+      setPreviewHtmlContent(newPreviewContent);
+    }
+  };
+
+  const handleCommandChange = (e) => {
+    setCommand(e.target.value);
+  };
+
+  const handleCommandSubmit = useCallback(
+    async (e) => {
+      if (e.key === 'Enter') {
+        setIsLoading(true);
+        try {
+          const response = await fetch('/api/claude', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              content: isParentMode ? parentContent : selectedNodeContent,
+              userInstruction: command,
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error('API request failed');
+          }
+
+          const result = await response.text();
+
+          // Update the editor with Claude's analysis
+          if (editorRef.current) {
+            editorRef.current.setValue(result);
+          }
+
+          // Update the selected node content and HTML content
+          if (isParentMode) {
+            setParentContent(result);
+            const newSelectedNodeContent = replaceParent(result, selectedNodeContent);
+            setSelectedNodeContent(newSelectedNodeContent);
+            updateHtmlContent(newSelectedNodeContent);
+          } else {
+            setSelectedNodeContent(result);
+            updateHtmlContent(result);
+          }
+        } catch (error) {
+          console.error('Error calling Claude API:', error);
+          if (editorRef.current) {
+            editorRef.current.setValue(
+              'An error occurred while processing your request.'
+            );
+          }
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    },
+    [selectedNodeContent, parentContent, command, isParentMode]
+  );
+
+  const parsedContent = parse(originalHtmlContent, {
+    replace: (domNode) => {
+      if (domNode instanceof Element) {
+        return (
+          <TreeNode node={domNode} onNodeClick={handleNodeClick} path='1' />
+        );
+      }
+    },
+  });
+
+  return (
+    <PanelGroup direction='horizontal'>
+      <Panel minSize={20}>
+        <div className='h-full overflow-auto bg-gray-50 p-4'>
+          {parsedContent}
+        </div>
+      </Panel>
+      <PanelResizeHandle className='w-2 bg-gray-200 transition-colors hover:bg-gray-300' />
+      <Panel minSize={20}>
+        <div className='h-full p-4 overflow-scroll'>{parse(previewHtmlContent)}</div>
+      </Panel>
+      <PanelResizeHandle className='w-2 bg-gray-200 transition-colors hover:bg-gray-300' />
+      <Panel minSize={20}>
+        <div className='flex h-full flex-col overflow-hidden bg-gray-100'>
+          <div className='flex items-center bg-gray-200 p-2'>
+            <Switch
+              checked={isParentMode}
+              onChange={handleToggleChange}
+              label={'Parent Mode'}
+            />
+          </div>
+          <div className='flex-1'>
+            {isLoading && (
+              <div className='absolute inset-0 z-10 flex items-center justify-center bg-gray-800 bg-opacity-50'>
+                <Loader2 className='h-8 w-8 animate-spin text-white' />
+              </div>
+            )}
+            <MonacoEditor
+              height='100%'
+              language='html'
+              theme='vs-dark'
+              value={isParentMode ? parentContent : selectedNodeContent}
+              onChange={handleEditorChange}
+              onMount={handleEditorDidMount}
+              options={{
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+                fontSize: 14,
+                wordWrap: 'off',
+              }}
+            />
+          </div>
+        </div>
+      </Panel>
+      <div className='fixed bottom-20 left-1/2 -translate-x-1/2 transform'>
+        <Input
+          className='w-64 rounded-full px-4 py-2 shadow-lg'
+          placeholder='Enter a command...'
+          value={command}
+          onChange={handleCommandChange}
+          onKeyPress={handleCommandSubmit}
         />
       </div>
-
-      <div className="mb-32 grid text-center lg:mb-0 lg:w-full lg:max-w-5xl lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Explore starter templates for Next.js.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-balance text-sm opacity-50">
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+    </PanelGroup>
   );
-}
+};
+
+export default HTMLParserComponent;

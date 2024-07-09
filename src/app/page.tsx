@@ -71,49 +71,54 @@ const TreeNode = ({ node, onNodeClick, path }) => {
 
 const HTMLParserComponent = () => {
   const [originalHtmlContent, setOriginalHtmlContent] = useState(`
-  <div class="bg-gray-100 h-full min-h-screen flex flex-col">
-  <header class="p-4">
-<nav class="container mx-auto flex items-center justify-between">
-<div class="flex items-center">
-  <div class="mr-4 h-[48px]">
-      <img src="https://i.pinimg.com/736x/e8/41/1e/e8411ecd9caa00c31d26607b51dc4851.jpg" alt="Logo" class="h-full w-full object-contain"></img>
-  </div>
-  <ul class="flex space-x-4">
-      <li><a href="#" class="text-blue-600 hover:text-blue-800">Home</a></li>
-      <li><a href="#" class="text-blue-600 hover:text-blue-800">About</a></li>
-      <li><a href="#" class="text-blue-600 hover:text-blue-800">Contact</a></li>
-  </ul>
-</div>
-<button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Contact Us</button>
-</nav>
-</header>
+  <div style="background-color: #f3f4f6; height: 100%; min-height: 100vh; display: flex; flex-direction: column;">
+  <header style="padding: 1rem;">
+    <nav style="max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between;">
+      <div style="display: flex; align-items: center;">
+        <div style="margin-right: 1rem; height: 48px;">
+          <img src="https://i.pinimg.com/736x/e8/41/1e/e8411ecd9caa00c31d26607b51dc4851.jpg" alt="Logo" style="height: 100%; width: 100%; object-fit: contain;">
+        </div>
+        <ul style="display: flex; gap: 1rem;">
+          <li><a href="#" style="color: #2563eb; text-decoration: none;">Home</a></li>
+          <li><a href="#" style="color: #2563eb; text-decoration: none;">About</a></li>
+          <li><a href="#" style="color: #2563eb; text-decoration: none;">Contact</a></li>
+        </ul>
+      </div>
+      <button style="background-color: #3b82f6; color: white; font-weight: bold; padding: 0.5rem 1rem; border-radius: 0.25rem; border: none; cursor: pointer;">Contact Us</button>
+    </nav>
+  </header>
 
-  <main class="flex-grow container mx-auto p-4">
-      <h1 class="text-3xl font-bold mb-4">Welcome to Our Website</h1>
-      <p class="mb-4">This is the main content area of our simple website. You can add more sections, images, and other content here.</p>
+  <main style="flex-grow: 1; max-width: 1200px; margin: 0 auto; padding: 1rem;">
+    <h1 style="font-size: 1.875rem; font-weight: bold; margin-bottom: 1rem;">Welcome to Our Website</h1>
+    <p style="margin-bottom: 1rem;">This is the main content area of our simple website. You can add more sections, images, and other content here.</p>
   </main>
 
-  <footer class="bg-gray-200 p-6 mt-auto">
-<div class="container mx-auto px-4 max-w-6xl">
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-      <div>
-          <h3 class="font-bold text-lg mb-2">About Us</h3>
-          <p class="text-sm text-gray-600">Simple Website is dedicated to providing quality content and services.</p>
-      </div>
-      <div>
-          <h3 class="font-bold text-lg mb-2">Quick Links</h3>
-          <ul class="space-y-2">
-              <li><a href="#" class="text-blue-600 hover:text-blue-800">Home</a></li>
-              <li><a href="#" class="text-blue-600 hover:text-blue-800">Services</a></li>
-              <li><a href="#" class="text-blue-600 hover:text-blue-800">Contact</a></li>
+  <footer style="background-color: #e5e7eb; padding: 1.5rem; margin-top: auto;">
+    <div style="max-width: 1200px; margin: 0 auto; padding: 0 1rem;">
+      <div style="display: grid; grid-template-columns: repeat(1, minmax(0, 1fr)); gap: 2rem;">
+        <div>
+          <h3 style="font-weight: bold; font-size: 1.125rem; margin-bottom: 0.5rem;">About Us</h3>
+          <p style="font-size: 0.875rem; color: #4b5563;">Simple Website is dedicated to providing quality content and services.</p>
+        </div>
+        <div>
+          <h3 style="font-weight: bold; font-size: 1.125rem; margin-bottom: 0.5rem;">Quick Links</h3>
+          <ul style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <li><a href="#" style="color: #2563eb; text-decoration: none;">Home</a></li>
+            <li><a href="#" style="color: #2563eb; text-decoration: none;">Services</a></li>
+            <li><a href="#" style="color: #2563eb; text-decoration: none;">Contact</a></li>
           </ul>
+        </div>
+        <div style="text-align: left;">
+          <h3 style="font-weight: bold; font-size: 1.125rem; margin-bottom: 0.5rem;">Follow Us</h3>
+          <div style="display: flex; gap: 1rem;">
+            <a href="#" style="color: #4b5563;"><svg style="width: 1.5rem; height: 1.5rem;" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"></path></svg></a>
+            <a href="#" style="color: #4b5563;"><svg style="width: 1.5rem; height: 1.5rem;" fill="currentColor" viewBox="0 0 24 24"><path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"></path></svg></a>
+            <a href="#" style="color: #4b5563;"><svg style="width: 1.5rem; height: 1.5rem;" fill="currentColor" viewBox="0 0 24 24"></svg></a>
+          </div>
+        </div>
       </div>
-      <div class="md:text-right">
-          <h3 class="font-bold text-lg mb-2">Follow Us</h3>
-          <div class="flex md:justify-end space-x-4">
-              <a href="#" class="text-gray-600 hover:text-gray-800"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"></path></svg></a>
-              <a href="#" class="text-gray-600 hover:text-gray-800"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"></path></svg></a>
-              <a href="#" class="text-gray-600 hover:text-gray-800"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"></svg></a></div></div></div></div></footer>
+    </div>
+  </footer>
 </div>
   `);
   const [command, setCommand] = useState('');

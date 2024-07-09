@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.24.3",
     "@monaco-editor/react": "^4.6.0",
     "html-react-parser": "^5.1.10",
     "lucide-react": "^0.407.0",

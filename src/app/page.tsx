@@ -202,7 +202,6 @@ const HTMLParserComponent = () => {
     editorRef.current = editor;
   };
 
-  const [iframeKey, setIframeKey] = useState(0);
 
   const updateHtmlContent = (newContent) => {
     const parser = new DOMParser();
@@ -235,8 +234,6 @@ const HTMLParserComponent = () => {
       );
       setPreviewHtmlContent(newPreviewContent);
 
-      // Force iframe refresh
-      setIframeKey((prevKey) => prevKey + 1);
     }
   };
 

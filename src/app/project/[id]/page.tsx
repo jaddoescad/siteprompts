@@ -22,6 +22,7 @@ import {
 } from "@/services/supabaseClientFunctions";
 import debounce from "lodash.debounce";
 
+
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
   ssr: false,
 });
@@ -95,7 +96,8 @@ const HTMLParserComponent = () => {
     useState(originalHtmlContent);
   const [saveStatus, setSaveStatus] = useState("");
   const [isInitialLoad, setIsInitialLoad] = useState(true);
-  
+  const [editorKey, setEditorKey] = useState(0);
+
   const params = useParams();
   const projectId = params.id;
 
@@ -115,7 +117,7 @@ const HTMLParserComponent = () => {
       if (editorRef.current) {
         editorRef.current.setValue(htmlContent);
       }
-      setIsInitialLoad(false);
+
     } catch (error) {
       console.error("Error fetching HTML content:", error);
       // Handle error (e.g., show error message to user)
@@ -170,6 +172,7 @@ const HTMLParserComponent = () => {
       newPath
     );
     setPreviewHtmlContent(newPreviewContent);
+    setEditorKey(prevKey => prevKey + 1);
   };
 
   useEffect(() => {
@@ -241,6 +244,7 @@ const HTMLParserComponent = () => {
 
       if (!isInitialLoad) {
         saveProjectHtmlContent(newOriginalContent);
+        setIsInitialLoad(false);
       }
     }
   };
@@ -367,6 +371,7 @@ const HTMLParserComponent = () => {
                 value={isParentMode ? parentContent : selectedNodeContent}
                 onChange={handleEditorChange}
                 onMount={handleEditorDidMount}
+                key={editorKey}
                 options={{
                   minimap: { enabled: false },
                   scrollBeyondLastLine: false,

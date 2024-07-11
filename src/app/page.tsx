@@ -14,6 +14,7 @@ import { replaceParent } from '@/utilities/replaceParent';
 import { FilesView } from "@/components/FilesView";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Header from "@/components/Header";
+import { Label } from "@/components/ui/label";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
   ssr: false,
@@ -193,8 +194,7 @@ const HTMLParserComponent = () => {
     }
   };
 
-  const handleToggleChange = (e) => {
-    const checked = e.target.checked;
+  const handleToggleChange = (checked) => {
     setIsParentMode(checked);
   };
 
@@ -338,13 +338,16 @@ const HTMLParserComponent = () => {
         <PanelResizeHandle className="w-2 bg-gray-200 transition-colors hover:bg-gray-300" />
         <Panel minSize={20}>
           <div className="flex h-full flex-col overflow-hidden bg-gray-100">
-            <div className="flex items-center bg-gray-200 p-2">
-              <Switch
-                checked={isParentMode}
-                onChange={handleToggleChange}
-                label={"Parent Mode"}
-              />
+            <div className='flex items-center p-4 bg-gray-200'>
+            <Switch
+              id="airplane-mode"
+              className='mr-2'
+              checked={isParentMode}
+              onCheckedChange={handleToggleChange}
+            />
+            <Label htmlFor="parent-mode">Parent Mode</Label>
             </div>
+
             <div className="flex-1">
               {isLoading && (
                 <div className="absolute inset-0 z-10 flex items-center justify-center bg-gray-800 bg-opacity-50">

@@ -4,15 +4,16 @@ import parse, { Element } from 'html-react-parser';
 import dynamic from 'next/dynamic';
 import { loader } from '@monaco-editor/react';
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels'
-import { Input } from '@/components/ui/Input';
+import { Input } from '@/components/ui/input';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Loader2 } from 'lucide-react'; // Import Loader2 icon
-import { Switch } from '@/components/ui/Switch'; // Note the capital 'S' in Switch
-import { highlightElementUtil } from '@/lib/highlightelement';
-import { getParentOrFullElement } from '@/lib/getParentOrFullElement';
-import { replaceParent } from '@/lib/replaceParent';
+import { Switch } from '@/components/ui/switch'; // Note the capital 'S' in Switch
+import { highlightElementUtil } from '@/utilities/highlightelement';
+import { getParentOrFullElement } from '@/utilities/getParentOrFullElement';
+import { replaceParent } from '@/utilities/replaceParent';
 import { FilesView } from "@/components/FilesView";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import Header from "@/components/Header";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
   ssr: false,
@@ -239,20 +240,6 @@ const HTMLParserComponent = () => {
     }
   };
 
-  const iframeContent = `
-  <!DOCTYPE html>
-  <html>
-    <head>
-      <style>
-        body { margin: 0; padding: 0; }
-      </style>
-    </head>
-    <body>
-      ${previewHtmlContent}
-    </body>
-  </html>
-`;
-
   const handleCommandChange = (e) => {
     setCommand(e.target.value);
   };
@@ -323,72 +310,75 @@ const HTMLParserComponent = () => {
   });
 
   return (
-    <PanelGroup direction="horizontal">
-      <Panel minSize={20}>
-        <Tabs defaultValue="tree" className="w-full h-full flex flex-col">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="tree">Tree</TabsTrigger>
-            <TabsTrigger value="files">Files</TabsTrigger>
-          </TabsList>
-          <TabsContent value="tree" className="flex-grow overflow-hidden">
-            <div className="h-full overflow-auto bg-gray-50 p-4">
-              {parsedContent}
-            </div>
-          </TabsContent>
-          <TabsContent value="files" className="flex-grow overflow-hidden">
-            <FilesView />
-          </TabsContent>
-        </Tabs>
-      </Panel>
-      <PanelResizeHandle className="w-2 bg-gray-200 transition-colors hover:bg-gray-300" />
-      <Panel minSize={20}>
-        <div className="h-full p-4 overflow-scroll">
-          {parse(previewHtmlContent)}
-        </div>
-      </Panel>
-      <PanelResizeHandle className="w-2 bg-gray-200 transition-colors hover:bg-gray-300" />
-      <Panel minSize={20}>
-        <div className="flex h-full flex-col overflow-hidden bg-gray-100">
-          <div className="flex items-center bg-gray-200 p-2">
-            <Switch
-              checked={isParentMode}
-              onChange={handleToggleChange}
-              label={"Parent Mode"}
-            />
-          </div>
-          <div className="flex-1">
-            {isLoading && (
-              <div className="absolute inset-0 z-10 flex items-center justify-center bg-gray-800 bg-opacity-50">
-                <Loader2 className="h-8 w-8 animate-spin text-white" />
+    <>
+      <Header />
+      <PanelGroup direction="horizontal">
+        <Panel minSize={20}>
+          <Tabs defaultValue="tree" className="w-full h-full flex flex-col">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="tree">Tree</TabsTrigger>
+              <TabsTrigger value="files">Files</TabsTrigger>
+            </TabsList>
+            <TabsContent value="tree" className="flex-grow overflow-hidden">
+              <div className="h-full overflow-auto bg-gray-50 p-4">
+                {parsedContent}
               </div>
-            )}
-            <MonacoEditor
-              height="100%"
-              language="html"
-              theme="vs-dark"
-              value={isParentMode ? parentContent : selectedNodeContent}
-              onChange={handleEditorChange}
-              onMount={handleEditorDidMount}
-              options={{
-                minimap: { enabled: false },
-                scrollBeyondLastLine: false,
-                fontSize: 14,
-                wordWrap: "off",
-              }}
-            />
+            </TabsContent>
+            <TabsContent value="files" className="flex-grow overflow-hidden">
+              <FilesView />
+            </TabsContent>
+          </Tabs>
+        </Panel>
+        <PanelResizeHandle className="w-2 bg-gray-200 transition-colors hover:bg-gray-300" />
+        <Panel minSize={20}>
+          <div className="h-full p-4 overflow-scroll">
+            {parse(previewHtmlContent)}
           </div>
+        </Panel>
+        <PanelResizeHandle className="w-2 bg-gray-200 transition-colors hover:bg-gray-300" />
+        <Panel minSize={20}>
+          <div className="flex h-full flex-col overflow-hidden bg-gray-100">
+            <div className="flex items-center bg-gray-200 p-2">
+              <Switch
+                checked={isParentMode}
+                onChange={handleToggleChange}
+                label={"Parent Mode"}
+              />
+            </div>
+            <div className="flex-1">
+              {isLoading && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center bg-gray-800 bg-opacity-50">
+                  <Loader2 className="h-8 w-8 animate-spin text-white" />
+                </div>
+              )}
+              <MonacoEditor
+                height="100%"
+                language="html"
+                theme="vs-dark"
+                value={isParentMode ? parentContent : selectedNodeContent}
+                onChange={handleEditorChange}
+                onMount={handleEditorDidMount}
+                options={{
+                  minimap: { enabled: false },
+                  scrollBeyondLastLine: false,
+                  fontSize: 14,
+                  wordWrap: "off",
+                }}
+              />
+            </div>
+          </div>
+        </Panel>
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 transform">
+          <Input
+            className="w-64 rounded-full px-4 py-2 shadow-lg"
+            placeholder="Enter a command..."
+            value={command}
+            onChange={handleCommandChange}
+            onKeyPress={handleCommandSubmit}
+          />
         </div>
-      </Panel>
-      <div className="fixed bottom-20 left-1/2 -translate-x-1/2 transform">
-        <Input
-          className="w-64 rounded-full px-4 py-2 shadow-lg"
-          placeholder="Enter a command..."
-          value={command}
-          onChange={handleCommandChange}
-          onKeyPress={handleCommandSubmit}
-        />
-      </div>
-    </PanelGroup>
+      </PanelGroup>
+    </>
   );
 };
 

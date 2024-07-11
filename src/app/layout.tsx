@@ -19,7 +19,6 @@ export default function RootLayout({
     <html lang='en'>
       <body className={inter.className}>
           <div className='min-h-screen'>
-            <Header />
             <main className='bg-red-200 w-full h-[calc(100vh-64px)]'>
               {children}
             </main>

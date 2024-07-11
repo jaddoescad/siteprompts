@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NextResponse } from 'next/server';
-import { generateHtmlModificationPrompt } from '../../prompts/htmlModificationPrompt';
+import { generateHtmlModificationPrompt } from '../../../prompts/htmlModificationPrompt';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,

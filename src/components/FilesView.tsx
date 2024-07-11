@@ -1,18 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Upload, Trash2, Loader, Copy, Check } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from './ui/button';
 import { createClient } from '@/lib/supabase/client';
 import {
   Dialog,
   DialogContent,
-} from "@/components/ui/dialog";
+} from "./ui/dialog";
 import { 
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from "./ui/tooltip";
 
 // Initialize Supabase client
 const supabase = createClient();

@@ -1,20 +1,26 @@
-'use client'
-import React, { useState, useRef, useCallback, useEffect } from 'react';
-import parse, { Element } from 'html-react-parser';
-import dynamic from 'next/dynamic';
-import { loader } from '@monaco-editor/react';
-import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels'
-import { Input } from '../components/ui/input';
-import { ChevronDown, ChevronRight } from 'lucide-react';
-import { Loader2 } from 'lucide-react'; // Import Loader2 icon
-import { Switch } from '../components/ui/switch'; // Note the capital 'S' in Switch
-import { highlightElementUtil } from '@/utilities/highlightelement';
-import { getParentOrFullElement } from '@/utilities/getParentOrFullElement';
-import { replaceParent } from '@/utilities/replaceParent';
-import { FilesView } from "../components/FilesView";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
-import Header from "../components/Header";
-import { Label } from "../components/ui/label";
+"use client";
+import React, { useState, useRef, useCallback, useEffect } from "react";
+import parse, { Element } from "html-react-parser";
+import dynamic from "next/dynamic";
+import { loader } from "@monaco-editor/react";
+import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels";
+import { Input } from "@/components/ui/input";
+import { ChevronDown, ChevronRight } from "lucide-react";
+import { Loader2 } from "lucide-react"; // Import Loader2 icon
+import { Switch } from "@/components/ui/switch"; // Note the capital 'S' in Switch
+import { highlightElementUtil } from "@/utilities/highlightelement";
+import { getParentOrFullElement } from "@/utilities/getParentOrFullElement";
+import { replaceParent } from "@/utilities/replaceParent";
+import { FilesView } from "@/components/FilesView";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import Header from "@/components/Header";
+import { Label } from "@/components/ui/label";
+import { useParams } from "next/navigation";
+import {
+  fetchHtmlContent,
+  saveHtmlContent,
+} from "@/services/supabaseClientFunctions";
+import debounce from "lodash.debounce";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
   ssr: false,
@@ -76,53 +82,7 @@ const TreeNode = ({ node, onNodeClick, path }) => {
 const HTMLParserComponent = () => {
   const [originalHtmlContent, setOriginalHtmlContent] = useState(`
   <div style="background-color: #f3f4f6; height: 100%; min-height: 100vh; display: flex; flex-direction: column;">
-  <header style="padding: 1rem;">
-    <nav style="max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between;">
-      <div style="display: flex; align-items: center;">
-        <div style="margin-right: 1rem; height: 48px;">
-          <img src="https://i.pinimg.com/736x/e8/41/1e/e8411ecd9caa00c31d26607b51dc4851.jpg" alt="Logo" style="height: 100%; width: 100%; object-fit: contain;">
-        </div>
-        <ul style="display: flex; gap: 1rem;">
-          <li><a href="#" style="color: #2563eb; text-decoration: none;">Home</a></li>
-          <li><a href="#" style="color: #2563eb; text-decoration: none;">About</a></li>
-          <li><a href="#" style="color: #2563eb; text-decoration: none;">Contact</a></li>
-        </ul>
-      </div>
-      <button style="background-color: #3b82f6; color: white; font-weight: bold; padding: 0.5rem 1rem; border-radius: 0.25rem; border: none; cursor: pointer;">Contact Us</button>
-    </nav>
-  </header>
-
-  <main style="flex-grow: 1; max-width: 1200px; margin: 0 auto; padding: 1rem;">
-    <h1 style="font-size: 1.875rem; font-weight: bold; margin-bottom: 1rem;">Welcome to Our Website</h1>
-    <p style="margin-bottom: 1rem;">This is the main content area of our simple website. You can add more sections, images, and other content here.</p>
-  </main>
-
-  <footer style="background-color: #e5e7eb; padding: 1.5rem; margin-top: auto;">
-    <div style="max-width: 1200px; margin: 0 auto; padding: 0 1rem;">
-      <div style="display: grid; grid-template-columns: repeat(1, minmax(0, 1fr)); gap: 2rem;">
-        <div>
-          <h3 style="font-weight: bold; font-size: 1.125rem; margin-bottom: 0.5rem;">About Us</h3>
-          <p style="font-size: 0.875rem; color: #4b5563;">Simple Website is dedicated to providing quality content and services.</p>
-        </div>
-        <div>
-          <h3 style="font-weight: bold; font-size: 1.125rem; margin-bottom: 0.5rem;">Quick Links</h3>
-          <ul style="display: flex; flex-direction: column; gap: 0.5rem;">
-            <li><a href="#" style="color: #2563eb; text-decoration: none;">Home</a></li>
-            <li><a href="#" style="color: #2563eb; text-decoration: none;">Services</a></li>
-            <li><a href="#" style="color: #2563eb; text-decoration: none;">Contact</a></li>
-          </ul>
-        </div>
-        <div style="text-align: left;">
-          <h3 style="font-weight: bold; font-size: 1.125rem; margin-bottom: 0.5rem;">Follow Us</h3>
-          <div style="display: flex; gap: 1rem;">
-            <a href="#" style="color: #4b5563;"><svg style="width: 1.5rem; height: 1.5rem;" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"></path></svg></a>
-            <a href="#" style="color: #4b5563;"><svg style="width: 1.5rem; height: 1.5rem;" fill="currentColor" viewBox="0 0 24 24"><path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"></path></svg></a>
-            <a href="#" style="color: #4b5563;"><svg style="width: 1.5rem; height: 1.5rem;" fill="currentColor" viewBox="0 0 24 24"></svg></a>
-          </div>
-        </div>
-      </div>
-    </div>
-  </footer>
+ 
 </div>
   `);
   const [command, setCommand] = useState("");
@@ -133,6 +93,52 @@ const HTMLParserComponent = () => {
   const [parentContent, setParentContent] = useState("");
   const [previewHtmlContent, setPreviewHtmlContent] =
     useState(originalHtmlContent);
+  const [saveStatus, setSaveStatus] = useState("");
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  
+  const params = useParams();
+  const projectId = params.id;
+
+  useEffect(() => {
+    if (projectId) {
+      fetchProjectHtmlContent();
+    }
+  }, [projectId]);
+
+  const fetchProjectHtmlContent = async () => {
+    setIsLoading(true);
+    try {
+      const htmlContent = await fetchHtmlContent(projectId);
+      console.log("HTML content:", htmlContent);
+      setOriginalHtmlContent(htmlContent);
+      setPreviewHtmlContent(htmlContent);
+      if (editorRef.current) {
+        editorRef.current.setValue(htmlContent);
+      }
+      setIsInitialLoad(false);
+    } catch (error) {
+      console.error("Error fetching HTML content:", error);
+      // Handle error (e.g., show error message to user)
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const saveProjectHtmlContent = useCallback(
+    debounce(async (content) => {
+      setSaveStatus("Saving...");
+      try {
+        await saveHtmlContent(projectId, content);
+        setSaveStatus("Saved");
+        setTimeout(() => setSaveStatus(""), 2000);
+      } catch (error) {
+        console.error("Error saving HTML content:", error);
+        setSaveStatus("Error saving");
+        // Handle error (e.g., show error message to user)
+      }
+    }, 1000),
+    [projectId]
+  );
 
   const editorRef = useRef(null);
 
@@ -202,8 +208,6 @@ const HTMLParserComponent = () => {
     editorRef.current = editor;
   };
 
-  const [iframeKey, setIframeKey] = useState(0);
-
   const updateHtmlContent = (newContent) => {
     const parser = new DOMParser();
     const doc = parser.parseFromString(previewHtmlContent, "text/html");
@@ -235,8 +239,9 @@ const HTMLParserComponent = () => {
       );
       setPreviewHtmlContent(newPreviewContent);
 
-      // Force iframe refresh
-      setIframeKey((prevKey) => prevKey + 1);
+      if (!isInitialLoad) {
+        saveProjectHtmlContent(newOriginalContent);
+      }
     }
   };
 
@@ -338,14 +343,15 @@ const HTMLParserComponent = () => {
         <PanelResizeHandle className="w-2 bg-gray-200 transition-colors hover:bg-gray-300" />
         <Panel minSize={20}>
           <div className="flex h-full flex-col overflow-hidden bg-gray-100">
-            <div className='flex items-center p-4 bg-gray-200'>
-            <Switch
-              id="airplane-mode"
-              className='mr-2'
-              checked={isParentMode}
-              onCheckedChange={handleToggleChange}
-            />
-            <Label htmlFor="parent-mode">Parent Mode</Label>
+            <div className="flex items-center p-4 bg-gray-200">
+              <Switch
+                id="airplane-mode"
+                className="mr-2"
+                checked={isParentMode}
+                onCheckedChange={handleToggleChange}
+              />
+              <Label htmlFor="parent-mode">Parent Mode</Label>
+              <div>{saveStatus}</div>
             </div>
 
             <div className="flex-1">

@@ -108,7 +108,7 @@ interface ProjectEditorProps {
   const [parentContent, setParentContent] = useState("");
 
   const [saveStatus, setSaveStatus] = useState("");
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [isInitialLoad, setIsInitialLoad] = useState(false);
   const [editorKey, setEditorKey] = useState(0);
 
 
@@ -228,7 +228,7 @@ interface ProjectEditorProps {
           selectedNodePath
         );
         setPreviewHtmlContent(newPreviewContent);
-
+        console.log("Updated content:");
         if (!isInitialLoad) {
           saveProjectHtmlContent(newOriginalContent);
           setIsInitialLoad(false);

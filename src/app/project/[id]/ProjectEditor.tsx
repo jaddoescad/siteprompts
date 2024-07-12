@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { loader } from "@monaco-editor/react";
 import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels";
 import { Input } from "@/components/ui/input";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Redo, Undo } from "lucide-react";
 import { Loader2 } from "lucide-react"; // Import Loader2 icon
 import { Switch } from "@/components/ui/switch"; // Note the capital 'S' in Switch
 import { highlightElementUtil } from "@/utilities/highlightelement";
@@ -15,10 +15,10 @@ import { FilesView } from "@/components/FilesView";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Header from "@/components/Header";
 import { Label } from "@/components/ui/label";
-import {
-  saveHtmlContent,
-} from "@/services/supabaseClientFunctions";
+import { saveHtmlContent } from "@/services/supabaseClientFunctions";
 import debounce from "lodash.debounce";
+import useUndo from "use-undo";
+import { Button } from "@/components/ui/button";
 
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
@@ -84,8 +84,22 @@ interface ProjectEditorProps {
   }
 
   const ProjectEditor: React.FC<ProjectEditorProps> = ({ initialHtmlContent, projectId }) => {
-    const [originalHtmlContent, setOriginalHtmlContent] = useState(initialHtmlContent);
-    const [previewHtmlContent, setPreviewHtmlContent] = useState(initialHtmlContent);
+    const [
+      htmlContentState,
+      {
+        set: setHtmlContent,
+        reset: resetHtmlContent,
+        undo: undoHtmlContent,
+        redo: redoHtmlContent,
+        canUndo,
+        canRedo,
+      },
+    ] = useUndo(initialHtmlContent);
+
+    const { present: originalHtmlContent } = htmlContentState;
+    const [previewHtmlContent, setPreviewHtmlContent] =
+      useState(initialHtmlContent);
+
   const [command, setCommand] = useState("");
   const [selectedNodeContent, setSelectedNodeContent] = useState("");
   const [selectedNodePath, setSelectedNodePath] = useState([]);
@@ -183,43 +197,58 @@ interface ProjectEditorProps {
     editorRef.current = editor;
   };
 
-  const updateHtmlContent = (newContent) => {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(previewHtmlContent, "text/html");
+  const updateHtmlContent = useCallback(
+    (newContent: string) => {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(newContent, "text/html");
 
-    let currentElement = doc.body.firstElementChild;
-    for (let i = 1; i < selectedNodePath.length; i++) {
-      const index = selectedNodePath[i] - 1;
-      if (
-        currentElement &&
-        index >= 0 &&
-        index < currentElement.children.length
-      ) {
-        currentElement = currentElement.children[index];
-      } else {
-        console.error("Invalid path");
-        return;
+      let currentElement = doc.body.firstElementChild;
+      for (let i = 1; i < selectedNodePath.length; i++) {
+        const index = selectedNodePath[i] - 1;
+        if (
+          currentElement &&
+          index >= 0 &&
+          index < currentElement.children.length
+        ) {
+          currentElement = currentElement.children[index];
+        } else {
+          console.error("Invalid path");
+          return;
+        }
       }
-    }
 
-    if (currentElement) {
-      currentElement.outerHTML = newContent;
-      const newOriginalContent = doc.body.innerHTML;
-      setOriginalHtmlContent(newOriginalContent);
+      if (currentElement) {
+        currentElement.outerHTML = newContent;
+        const newOriginalContent = doc.body.innerHTML;
+        setHtmlContent(newOriginalContent);
 
-      // Apply highlighting to the updated content
-      const newPreviewContent = highlightElementUtil(
-        newOriginalContent,
-        selectedNodePath
-      );
-      setPreviewHtmlContent(newPreviewContent);
+        // Apply highlighting to the updated content
+        const newPreviewContent = highlightElementUtil(
+          newOriginalContent,
+          selectedNodePath
+        );
+        setPreviewHtmlContent(newPreviewContent);
 
-      if (!isInitialLoad) {
-        saveProjectHtmlContent(newOriginalContent);
-        setIsInitialLoad(false);
+        if (!isInitialLoad) {
+          saveProjectHtmlContent(newOriginalContent);
+          setIsInitialLoad(false);
+        }
       }
-    }
-  };
+    },
+    [selectedNodePath, setHtmlContent, saveProjectHtmlContent, isInitialLoad]
+  );
+
+  useEffect(() => {
+    setPreviewHtmlContent(originalHtmlContent);
+  }, [originalHtmlContent]);
+
+  const handleUndo = useCallback(() => {
+    undoHtmlContent();
+  }, [undoHtmlContent]);
+
+  const handleRedo = useCallback(() => {
+    redoHtmlContent();
+  }, [redoHtmlContent]);
 
   const handleCommandChange = (e) => {
     setCommand(e.target.value);
@@ -327,6 +356,19 @@ interface ProjectEditorProps {
                 onCheckedChange={handleToggleChange}
               />
               <Label htmlFor="parent-mode">Parent Mode</Label>
+              <div className="flex items-center">
+                <Button
+                  onClick={handleUndo}
+                  disabled={!canUndo}
+                  className="mr-2"
+                  size="sm"
+                >
+                  <Undo className="h-4 w-4" />
+                </Button>
+                <Button onClick={handleRedo} disabled={!canRedo} size="sm">
+                  <Redo className="h-4 w-4" />
+                </Button>
+              </div>
               <div>{saveStatus}</div>
             </div>
 

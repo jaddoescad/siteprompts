@@ -3,7 +3,13 @@ import React, { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { User } from '@supabase/supabase-js';
 import Link from 'next/link';
-import { UserCircle } from 'lucide-react';
+import { UserCircle, ChevronDown } from 'lucide-react';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 const supabase = createClient();
 
@@ -33,30 +39,39 @@ const Header = () => {
 
   return (
     <header className="bg-gray-800 text-white p-4">
-      <div className="container mx-auto flex justify-between items-center">
+      <div className="flex justify-between items-center">
         <Link href="/" className="text-xl font-bold">
-          My App
+          BlockAI
         </Link>
         <nav>
           {user ? (
-            <div className="flex items-center space-x-4">
-              <span>{user.email}</span>
-              {user.user_metadata.avatar_url ? (
-                <img 
-                  src={user.user_metadata.avatar_url} 
-                  alt="User avatar" 
-                  className="w-8 h-8 rounded-full"
-                />
-              ) : (
-                <UserCircle className="w-8 h-8" />
-              )}
-              <button 
-                onClick={handleSignOut}
-                className="bg-red-500 hover:bg-red-600 px-3 py-1 rounded"
-              >
-                Sign Out
-              </button>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger className="flex items-center space-x-2">
+                {user.user_metadata.avatar_url ? (
+                  <img 
+                    src={user.user_metadata.avatar_url} 
+                    alt="User avatar" 
+                    className="w-8 h-8 rounded-full"
+                  />
+                ) : (
+                  <UserCircle className="w-8 h-8" />
+                )}
+                <ChevronDown className="w-4 h-4" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem>
+                  <span className="text-sm text-gray-700">{user.email}</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <button 
+                    onClick={handleSignOut}
+                    className="text-sm text-red-600"
+                  >
+                    Sign Out
+                  </button>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
             <Link href="/auth/login" className="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded">
               Sign In

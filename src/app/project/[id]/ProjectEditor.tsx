@@ -5,10 +5,8 @@ import parse, { Element } from "html-react-parser";
 import dynamic from "next/dynamic";
 import { loader } from "@monaco-editor/react";
 import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels";
-import { Input } from "@/components/ui/input";
 import { ChevronDown, ChevronRight, Redo, Undo } from "lucide-react";
 import { Loader2 } from "lucide-react"; // Import Loader2 icon
-import { Switch } from "@/components/ui/switch"; // Note the capital 'S' in Switch
 import { highlightElementUtil } from "@/utilities/highlightelement";
 import { getParentOrFullElement } from "@/utilities/getParentOrFullElement";
 import { replaceParent } from "@/utilities/replaceParent";
@@ -20,6 +18,8 @@ import { saveHtmlContent } from "@/services/supabaseClientFunctions";
 import debounce from "lodash.debounce";
 import useUndo from "use-undo";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {

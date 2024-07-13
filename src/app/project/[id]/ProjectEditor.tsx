@@ -314,60 +314,60 @@ interface ProjectEditorProps {
       setCommand(e.target.value);
     };
 
-    // const handleCommandSubmit = useCallback(
-    //   async (e) => {
-    //     if (e.key === "Enter") {
-    //       setIsLoading(true);
-    //       try {
-    //         const response = await fetch("/api/claude", {
-    //           method: "POST",
-    //           headers: {
-    //             "Content-Type": "application/json",
-    //           },
-    //           body: JSON.stringify({
-    //             content: isParentMode ? parentContent : selectedNodeContent,
-    //             userInstruction: command,
-    //           }),
-    //         });
+    const handleCommandSubmit = useCallback(
+      async (e) => {
+        if (e.key === "Enter") {
+          setIsLoading(true);
+          try {
+            const response = await fetch("/api/claude", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                content: isParentMode ? parentContent : selectedNodeContent,
+                userInstruction: command,
+              }),
+            });
 
-    //         if (!response.ok) {
-    //           throw new Error("API request failed");
-    //         }
+            if (!response.ok) {
+              throw new Error("API request failed");
+            }
 
-    //         const result = await response.text();
+            const result = await response.text();
 
-    //         // Update the editor with Claude's analysis
-    //         if (editorRef.current) {
-    //           editorRef.current.setValue(result);
-    //         }
+            // Update the editor with Claude's analysis
+            if (editorRef.current) {
+              editorRef.current.setValue(result);
+            }
 
-    //         // Update the selected node content and HTML content
-    //         if (isParentMode) {
-    //           setParentContent(result);
-    //           const newSelectedNodeContent = replaceParent(
-    //             result,
-    //             selectedNodeContent
-    //           );
-    //           setSelectedNodeContent(newSelectedNodeContent);
-    //           updateHtmlContent(newSelectedNodeContent);
-    //         } else {
-    //           setSelectedNodeContent(result);
-    //           updateHtmlContent(result);
-    //         }
-    //       } catch (error) {
-    //         console.error("Error calling Claude API:", error);
-    //         if (editorRef.current) {
-    //           editorRef.current.setValue(
-    //             "An error occurred while processing your request."
-    //           );
-    //         }
-    //       } finally {
-    //         setIsLoading(false);
-    //       }
-    //     }
-    //   },
-    //   [selectedNodeContent, parentContent, command, isParentMode]
-    // );
+            // Update the selected node content and HTML content
+            if (isParentMode) {
+              setParentContent(result);
+              const newSelectedNodeContent = replaceParent(
+                result,
+                selectedNodeContent
+              );
+              setSelectedNodeContent(newSelectedNodeContent);
+              updateHtmlContent(newSelectedNodeContent);
+            } else {
+              setSelectedNodeContent(result);
+              updateHtmlContent(result);
+            }
+          } catch (error) {
+            console.error("Error calling Claude API:", error);
+            if (editorRef.current) {
+              editorRef.current.setValue(
+                "An error occurred while processing your request."
+              );
+            }
+          } finally {
+            setIsLoading(false);
+          }
+        }
+      },
+      [selectedNodeContent, parentContent, command, isParentMode]
+    );
 
     const parsedContent = parse(originalHtmlContent, {
       replace: (domNode) => {
@@ -456,15 +456,15 @@ interface ProjectEditorProps {
               </div>
             </div>
           </Panel>
-          {/* <div className="fixed bottom-20 left-1/2 -translate-x-1/2 transform">
+          <div className="fixed bottom-20 left-1/2 -translate-x-1/2 transform">
             <Input
             className="w-64 rounded-full px-4 py-2 shadow-lg"
             placeholder="Enter a command..."
             value={command}
             onChange={handleCommandChange}
             onKeyPress={handleCommandSubmit}
-          /> */}
-          {/* </div> */}
+          />
+          </div>
         </PanelGroup>
       </>
     );

@@ -283,16 +283,31 @@ interface ProjectEditorProps {
         setIsInitialLoad(false);
       }
     };
+
+    useEffect(() => {
+      // Update previewHtmlContent whenever originalHtmlContent changes
+      if (selectedNodePath.length > 0) {
+        const newPreviewContent = highlightElementUtil(
+          originalHtmlContent,
+          selectedNodePath
+        );
+        setPreviewHtmlContent(newPreviewContent);
+        updateSelectedNodeContent();
+      } else {
+        setPreviewHtmlContent(originalHtmlContent);
+        updateSelectedNodeContent();
+      }
+    }, [originalHtmlContent, selectedNodePath]);
     
 
     const handleUndo = useCallback(() => {
       undoHtmlContent();
-      updateSelectedNodeContent();
+      // updateSelectedNodeContent();
     }, [undoHtmlContent, updateSelectedNodeContent]);
 
     const handleRedo = useCallback(() => {
       redoHtmlContent();
-      updateSelectedNodeContent();
+      // 
     }, [redoHtmlContent, updateSelectedNodeContent]);
 
     const handleCommandChange = (e) => {

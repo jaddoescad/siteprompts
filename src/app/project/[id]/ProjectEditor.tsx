@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import parse, { Element } from "html-react-parser";
 import dynamic from "next/dynamic";
@@ -148,7 +149,6 @@ interface ProjectEditorProps {
   const handleNodeClick = (node, path) => {
     const content = getNodeContent(node);
     setSelectedNodeContent(content);
-    setParentContent(getParentOrFullElement(content));
     const newPath = path.split("-").map(Number);
     setSelectedNodePath(newPath);
 

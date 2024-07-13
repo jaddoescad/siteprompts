@@ -198,6 +198,33 @@ interface ProjectEditorProps {
     editorRef.current = editor;
   };
 
+  const updateSelectedNodeContent = useCallback(() => {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(originalHtmlContent, "text/html");
+
+    let currentElement = doc.body.firstElementChild;
+    for (let i = 1; i < selectedNodePath.length; i++) {
+      const index = selectedNodePath[i] - 1;
+      if (
+        currentElement &&
+        index >= 0 &&
+        index < currentElement.children.length
+      ) {
+        currentElement = currentElement.children[index];
+      } else {
+        console.error("Invalid path");
+        return;
+      }
+    }
+
+    if (currentElement) {
+      const newSelectedContent = currentElement.outerHTML;
+      setSelectedNodeContent(newSelectedContent);
+      setParentContent(getParentOrFullElement(originalHtmlContent, selectedNodePath));
+    }
+  }, [originalHtmlContent, selectedNodePath]);
+
+
   const updateHtmlContent = useCallback(
     (newContent: string) => {
       const parser = new DOMParser();
@@ -245,11 +272,13 @@ interface ProjectEditorProps {
 
   const handleUndo = useCallback(() => {
     undoHtmlContent();
-  }, [undoHtmlContent]);
+    updateSelectedNodeContent();
+  }, [undoHtmlContent, updateSelectedNodeContent]);
 
   const handleRedo = useCallback(() => {
     redoHtmlContent();
-  }, [redoHtmlContent]);
+    updateSelectedNodeContent();
+  }, [redoHtmlContent, updateSelectedNodeContent]);
 
   const handleCommandChange = (e) => {
     setCommand(e.target.value);

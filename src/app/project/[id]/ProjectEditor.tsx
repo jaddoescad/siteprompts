@@ -86,7 +86,7 @@ interface ProjectEditorProps {
 
   const ProjectEditor: React.FC<ProjectEditorProps> = ({ initialHtmlContent, projectId }) => {
     const [
-      originalHtmlContent,
+      htmlContentState,
       {
         set: setHtmlContent,
         reset: resetHtmlContent,
@@ -97,6 +97,7 @@ interface ProjectEditorProps {
       },
     ] = useUndo(initialHtmlContent);
 
+    const { present: originalHtmlContent } = htmlContentState;
     const [lastSavedContent, setLastSavedContent] = useState(initialHtmlContent);
 
     const [previewHtmlContent, setPreviewHtmlContent] =
@@ -132,8 +133,8 @@ interface ProjectEditorProps {
 
     useEffect(() => {
       console.log("Initial load");
-
-      if (originalHtmlContent !== lastSavedContent) {
+      
+      if (originalHtmlContent !== lastSavedContent && !isInitialLoad) {
         saveProjectHtmlContent(originalHtmlContent);
       }
 
@@ -279,6 +280,7 @@ interface ProjectEditorProps {
         setParentContent(newParentContent);
       } else {
         updateBothContents(value);
+        setIsInitialLoad(false);
       }
     };
     

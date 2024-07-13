@@ -160,6 +160,7 @@ interface ProjectEditorProps {
     setPreviewHtmlContent(newPreviewContent);
     setEditorKey(prevKey => prevKey + 1);
   };
+  
 
   useEffect(() => {
     setSelectedNodeContent(originalHtmlContent);
@@ -200,8 +201,8 @@ interface ProjectEditorProps {
   const updateHtmlContent = useCallback(
     (newContent: string) => {
       const parser = new DOMParser();
-      const doc = parser.parseFromString(newContent, "text/html");
-
+      const doc = parser.parseFromString(originalHtmlContent, "text/html");
+  
       let currentElement = doc.body.firstElementChild;
       for (let i = 1; i < selectedNodePath.length; i++) {
         const index = selectedNodePath[i] - 1;
@@ -216,12 +217,12 @@ interface ProjectEditorProps {
           return;
         }
       }
-
+  
       if (currentElement) {
         currentElement.outerHTML = newContent;
         const newOriginalContent = doc.body.innerHTML;
         setHtmlContent(newOriginalContent);
-
+  
         // Apply highlighting to the updated content
         const newPreviewContent = highlightElementUtil(
           newOriginalContent,
@@ -235,7 +236,7 @@ interface ProjectEditorProps {
         }
       }
     },
-    [selectedNodePath, setHtmlContent, saveProjectHtmlContent, isInitialLoad]
+    [originalHtmlContent, selectedNodePath, setHtmlContent, saveProjectHtmlContent, isInitialLoad]
   );
 
   useEffect(() => {

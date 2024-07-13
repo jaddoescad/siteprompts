@@ -86,7 +86,7 @@ interface ProjectEditorProps {
 
   const ProjectEditor: React.FC<ProjectEditorProps> = ({ initialHtmlContent, projectId }) => {
     const [
-      htmlContentState,
+      originalHtmlContent,
       {
         set: setHtmlContent,
         reset: resetHtmlContent,
@@ -97,139 +97,107 @@ interface ProjectEditorProps {
       },
     ] = useUndo(initialHtmlContent);
 
-    const { present: originalHtmlContent } = htmlContentState;
+    const [lastSavedContent, setLastSavedContent] = useState(initialHtmlContent);
+
     const [previewHtmlContent, setPreviewHtmlContent] =
       useState(initialHtmlContent);
 
-  const [command, setCommand] = useState("");
-  const [selectedNodeContent, setSelectedNodeContent] = useState("");
-  const [selectedNodePath, setSelectedNodePath] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isParentMode, setIsParentMode] = useState(false);
-  const [parentContent, setParentContent] = useState("");
+    const [command, setCommand] = useState("");
+    const [selectedNodeContent, setSelectedNodeContent] = useState("");
+    const [selectedNodePath, setSelectedNodePath] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [isParentMode, setIsParentMode] = useState(false);
+    const [parentContent, setParentContent] = useState("");
 
-  const [saveStatus, setSaveStatus] = useState("");
-  const [isInitialLoad, setIsInitialLoad] = useState(false);
-  const [editorKey, setEditorKey] = useState(0);
+    const [saveStatus, setSaveStatus] = useState("");
+    const [isInitialLoad, setIsInitialLoad] = useState(false);
+    const [editorKey, setEditorKey] = useState(0);
 
-
-  const saveProjectHtmlContent = useCallback(
-    debounce(async (content) => {
-      setSaveStatus("Saving...");
-      try {
-        await saveHtmlContent(projectId, content);
-        setSaveStatus("Saved");
-        setTimeout(() => setSaveStatus(""), 2000);
-      } catch (error) {
-        console.error("Error saving HTML content:", error);
-        setSaveStatus("Error saving");
-        // Handle error (e.g., show error message to user)
-      }
-    }, 1000),
-    [projectId]
-  );
-
-  const editorRef = useRef(null);
-
-  const getNodeContent = (node) => {
-    if (node.type === "text") {
-      return node.data;
-    }
-    const attributes = Object.entries(node.attribs || {})
-      .map(([key, value]) => `${key}="${value}"`)
-      .join(" ");
-    const openTag = `<${node.name}${attributes ? " " + attributes : ""}>`;
-    const closeTag = `</${node.name}>`;
-    const childContent = node.children
-      ? node.children.map(getNodeContent).join("")
-      : "";
-    return `${openTag}${childContent}${closeTag}`;
-  };
-
-  const handleNodeClick = (node, path) => {
-    const content = getNodeContent(node);
-    setSelectedNodeContent(content);
-    const newPath = path.split("-").map(Number);
-    setSelectedNodePath(newPath);
-
-    // Apply highlighting immediately
-    const newPreviewContent = highlightElementUtil(
-      originalHtmlContent,
-      newPath
+    const saveProjectHtmlContent = useCallback(
+      debounce(async (content) => {
+        setSaveStatus("Saving...");
+        try {
+          await saveHtmlContent(projectId, content);
+          setLastSavedContent(content);
+          setSaveStatus("Saved");
+          setTimeout(() => setSaveStatus(""), 2000);
+        } catch (error) {
+          console.error("Error saving HTML content:", error);
+          setSaveStatus("Error saving");
+          // Handle error (e.g., show error message to user)
+        }
+      }, 1000),
+      [projectId]
     );
-    setPreviewHtmlContent(newPreviewContent);
-    setEditorKey(prevKey => prevKey + 1);
-  };
-  
 
-  useEffect(() => {
-    setSelectedNodeContent(originalHtmlContent);
-    setParentContent(getParentOrFullElement(originalHtmlContent));
-  }, []);
+    useEffect(() => {
+      console.log("Initial load");
 
-  useEffect(() => {
-    if (selectedNodeContent !== "" && !isParentMode) {
-      updateHtmlContent(selectedNodeContent);
-    }
-  }, [selectedNodeContent, isParentMode]);
-
-  const handleEditorChange = (value) => {
-    if (isParentMode) {
-      const newParentContent = value;
-      setParentContent(newParentContent);
-      // Update selectedNodeContent when parent is changed
-      const newSelectedNodeContent = replaceParent(
-        newParentContent,
-        selectedNodeContent
-      );
-      setSelectedNodeContent(newSelectedNodeContent);
-      // Update the HTML content
-      updateHtmlContent(newSelectedNodeContent);
-    } else {
-      setSelectedNodeContent(value);
-    }
-  };
-
-  const handleToggleChange = (checked) => {
-    setIsParentMode(checked);
-  };
-
-  const handleEditorDidMount = (editor) => {
-    editorRef.current = editor;
-  };
-
-  const updateSelectedNodeContent = useCallback(() => {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(originalHtmlContent, "text/html");
-
-    let currentElement = doc.body.firstElementChild;
-    for (let i = 1; i < selectedNodePath.length; i++) {
-      const index = selectedNodePath[i] - 1;
-      if (
-        currentElement &&
-        index >= 0 &&
-        index < currentElement.children.length
-      ) {
-        currentElement = currentElement.children[index];
-      } else {
-        console.error("Invalid path");
-        return;
+      if (originalHtmlContent !== lastSavedContent) {
+        saveProjectHtmlContent(originalHtmlContent);
       }
-    }
 
-    if (currentElement) {
-      const newSelectedContent = currentElement.outerHTML;
-      setSelectedNodeContent(newSelectedContent);
-      setParentContent(getParentOrFullElement(originalHtmlContent, selectedNodePath));
-    }
-  }, [originalHtmlContent, selectedNodePath]);
+    }, [originalHtmlContent]);
+
+    const editorRef = useRef(null);
+
+    const getNodeContent = (node) => {
+      if (node.type === "text") {
+        return node.data;
+      }
+      const attributes = Object.entries(node.attribs || {})
+        .map(([key, value]) => `${key}="${value}"`)
+        .join(" ");
+      const openTag = `<${node.name}${attributes ? " " + attributes : ""}>`;
+      const closeTag = `</${node.name}>`;
+      const childContent = node.children
+        ? node.children.map(getNodeContent).join("")
+        : "";
+      return `${openTag}${childContent}${closeTag}`;
+    };
+
+    const handleNodeClick = (node, path) => {
+      const content = getNodeContent(node);
+      updateBothContents(content);
+
+      const newPath = path.split("-").map(Number);
+      setSelectedNodePath(newPath);
+
+      // Apply highlighting immediately
+      const newPreviewContent = highlightElementUtil(
+        originalHtmlContent,
+        newPath
+      );
+      setPreviewHtmlContent(newPreviewContent);
+      setEditorKey((prevKey) => prevKey + 1);
+    };
 
 
-  const updateHtmlContent = useCallback(
-    (newContent: string) => {
+    useEffect(() => {
+      updateBothContents(originalHtmlContent);
+    }, []);
+
+    useEffect(() => {
+      if (selectedNodeContent !== "") {
+        updateHtmlContent(selectedNodeContent);
+      }
+    }, [selectedNodeContent]);
+
+    const handleToggleChange = (checked) => {
+      setIsParentMode(checked);
+      setEditorKey((prevKey) => prevKey + 1);
+    };
+
+    const handleEditorDidMount = (editor) => {
+      editorRef.current = editor;
+    };
+
+
+
+    const updateSelectedNodeContent = useCallback(() => {
       const parser = new DOMParser();
       const doc = parser.parseFromString(originalHtmlContent, "text/html");
-  
+
       let currentElement = doc.body.firstElementChild;
       for (let i = 1; i < selectedNodePath.length; i++) {
         const index = selectedNodePath[i] - 1;
@@ -244,200 +212,245 @@ interface ProjectEditorProps {
           return;
         }
       }
-  
+
       if (currentElement) {
-        currentElement.outerHTML = newContent;
-        const newOriginalContent = doc.body.innerHTML;
-        setHtmlContent(newOriginalContent);
-  
-        // Apply highlighting to the updated content
-        const newPreviewContent = highlightElementUtil(
-          newOriginalContent,
-          selectedNodePath
-        );
-        setPreviewHtmlContent(newPreviewContent);
-        console.log("Updated content:");
-        if (!isInitialLoad) {
-          saveProjectHtmlContent(newOriginalContent);
-          setIsInitialLoad(false);
-        }
+        const newSelectedContent = currentElement.outerHTML;
+        updateBothContents(newSelectedContent);
       }
-    },
-    [originalHtmlContent, selectedNodePath, setHtmlContent, saveProjectHtmlContent, isInitialLoad]
-  );
+    }, [originalHtmlContent, selectedNodePath]);
 
-  useEffect(() => {
-    setPreviewHtmlContent(originalHtmlContent);
-  }, [originalHtmlContent]);
+    const updateHtmlContent = useCallback(
+      (newContent: string) => {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(originalHtmlContent, "text/html");
 
-  const handleUndo = useCallback(() => {
-    undoHtmlContent();
-    updateSelectedNodeContent();
-  }, [undoHtmlContent, updateSelectedNodeContent]);
-
-  const handleRedo = useCallback(() => {
-    redoHtmlContent();
-    updateSelectedNodeContent();
-  }, [redoHtmlContent, updateSelectedNodeContent]);
-
-  const handleCommandChange = (e) => {
-    setCommand(e.target.value);
-  };
-
-  const handleCommandSubmit = useCallback(
-    async (e) => {
-      if (e.key === "Enter") {
-        setIsLoading(true);
-        try {
-          const response = await fetch("/api/claude", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              content: isParentMode ? parentContent : selectedNodeContent,
-              userInstruction: command,
-            }),
-          });
-
-          if (!response.ok) {
-            throw new Error("API request failed");
-          }
-
-          const result = await response.text();
-
-          // Update the editor with Claude's analysis
-          if (editorRef.current) {
-            editorRef.current.setValue(result);
-          }
-
-          // Update the selected node content and HTML content
-          if (isParentMode) {
-            setParentContent(result);
-            const newSelectedNodeContent = replaceParent(
-              result,
-              selectedNodeContent
-            );
-            setSelectedNodeContent(newSelectedNodeContent);
-            updateHtmlContent(newSelectedNodeContent);
+        let currentElement = doc.body.firstElementChild;
+        for (let i = 1; i < selectedNodePath.length; i++) {
+          const index = selectedNodePath[i] - 1;
+          if (
+            currentElement &&
+            index >= 0 &&
+            index < currentElement.children.length
+          ) {
+            currentElement = currentElement.children[index];
           } else {
-            setSelectedNodeContent(result);
-            updateHtmlContent(result);
+            console.error("Invalid path");
+            return;
           }
-        } catch (error) {
-          console.error("Error calling Claude API:", error);
-          if (editorRef.current) {
-            editorRef.current.setValue(
-              "An error occurred while processing your request."
-            );
-          }
-        } finally {
-          setIsLoading(false);
         }
-      }
-    },
-    [selectedNodeContent, parentContent, command, isParentMode]
-  );
 
-  const parsedContent = parse(originalHtmlContent, {
-    replace: (domNode) => {
-      if (domNode instanceof Element) {
-        return (
-          <TreeNode node={domNode} onNodeClick={handleNodeClick} path="1" />
+        if (currentElement) {
+          currentElement.outerHTML = newContent;
+          const newOriginalContent = doc.body.innerHTML;
+          setHtmlContent(newOriginalContent);
+
+          // Apply highlighting to the updated content
+          const newPreviewContent = highlightElementUtil(
+            newOriginalContent,
+            selectedNodePath
+          );
+          setPreviewHtmlContent(newPreviewContent);
+        }
+      },
+      [
+        originalHtmlContent,
+        selectedNodePath
+      ]
+    );
+
+    const updateBothContents = useCallback(
+      (newContent) => {
+          setSelectedNodeContent(newContent);
+          const newParentContent = getParentOrFullElement(newContent);
+          setParentContent(newParentContent);
+      },
+      [selectedNodeContent]
+    );
+
+    const handleEditorChange = (value) => {
+      if (isParentMode) {
+        const newParentContent = value;
+        // Update selectedNodeContent when parent is changed
+        const newSelectedNodeContent = replaceParent(
+          newParentContent,
+          selectedNodeContent
         );
+        setSelectedNodeContent(newSelectedNodeContent);
+        setParentContent(newParentContent);
+      } else {
+        updateBothContents(value);
       }
-    },
-  });
+    };
+    
 
-  return (
-    <>
-      <Header />
-      <PanelGroup direction="horizontal">
-        <Panel minSize={20}>
-          <Tabs defaultValue="tree" className="w-full h-full flex flex-col">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="tree">Tree</TabsTrigger>
-              <TabsTrigger value="files">Files</TabsTrigger>
-            </TabsList>
-            <TabsContent value="tree" className="flex-grow overflow-hidden">
-              <div className="h-full overflow-auto bg-gray-50 p-4">
-                {parsedContent}
-              </div>
-            </TabsContent>
-            <TabsContent value="files" className="flex-grow overflow-hidden">
-              <FilesView />
-            </TabsContent>
-          </Tabs>
-        </Panel>
-        <PanelResizeHandle className="w-2 bg-gray-200 transition-colors hover:bg-gray-300" />
-        <Panel minSize={20}>
-          <div className="h-full p-4 overflow-scroll">
-            {parse(previewHtmlContent)}
-          </div>
-        </Panel>
-        <PanelResizeHandle className="w-2 bg-gray-200 transition-colors hover:bg-gray-300" />
-        <Panel minSize={20}>
-          <div className="flex h-full flex-col overflow-hidden bg-gray-100">
-            <div className="flex items-center p-4 bg-gray-200">
-              <Switch
-                id="airplane-mode"
-                className="mr-2"
-                checked={isParentMode}
-                onCheckedChange={handleToggleChange}
-              />
-              <Label htmlFor="parent-mode">Parent Mode</Label>
-              <div className="flex items-center">
-                <Button
-                  onClick={handleUndo}
-                  disabled={!canUndo}
-                  className="mr-2"
-                  size="sm"
-                >
-                  <Undo className="h-4 w-4" />
-                </Button>
-                <Button onClick={handleRedo} disabled={!canRedo} size="sm">
-                  <Redo className="h-4 w-4" />
-                </Button>
-              </div>
-              <div>{saveStatus}</div>
-            </div>
+    const handleUndo = useCallback(() => {
+      undoHtmlContent();
+      updateSelectedNodeContent();
+    }, [undoHtmlContent, updateSelectedNodeContent]);
 
-            <div className="flex-1">
-              {isLoading && (
-                <div className="absolute inset-0 z-10 flex items-center justify-center bg-gray-800 bg-opacity-50">
-                  <Loader2 className="h-8 w-8 animate-spin text-white" />
+    const handleRedo = useCallback(() => {
+      redoHtmlContent();
+      updateSelectedNodeContent();
+    }, [redoHtmlContent, updateSelectedNodeContent]);
+
+    const handleCommandChange = (e) => {
+      setCommand(e.target.value);
+    };
+
+    // const handleCommandSubmit = useCallback(
+    //   async (e) => {
+    //     if (e.key === "Enter") {
+    //       setIsLoading(true);
+    //       try {
+    //         const response = await fetch("/api/claude", {
+    //           method: "POST",
+    //           headers: {
+    //             "Content-Type": "application/json",
+    //           },
+    //           body: JSON.stringify({
+    //             content: isParentMode ? parentContent : selectedNodeContent,
+    //             userInstruction: command,
+    //           }),
+    //         });
+
+    //         if (!response.ok) {
+    //           throw new Error("API request failed");
+    //         }
+
+    //         const result = await response.text();
+
+    //         // Update the editor with Claude's analysis
+    //         if (editorRef.current) {
+    //           editorRef.current.setValue(result);
+    //         }
+
+    //         // Update the selected node content and HTML content
+    //         if (isParentMode) {
+    //           setParentContent(result);
+    //           const newSelectedNodeContent = replaceParent(
+    //             result,
+    //             selectedNodeContent
+    //           );
+    //           setSelectedNodeContent(newSelectedNodeContent);
+    //           updateHtmlContent(newSelectedNodeContent);
+    //         } else {
+    //           setSelectedNodeContent(result);
+    //           updateHtmlContent(result);
+    //         }
+    //       } catch (error) {
+    //         console.error("Error calling Claude API:", error);
+    //         if (editorRef.current) {
+    //           editorRef.current.setValue(
+    //             "An error occurred while processing your request."
+    //           );
+    //         }
+    //       } finally {
+    //         setIsLoading(false);
+    //       }
+    //     }
+    //   },
+    //   [selectedNodeContent, parentContent, command, isParentMode]
+    // );
+
+    const parsedContent = parse(originalHtmlContent, {
+      replace: (domNode) => {
+        if (domNode instanceof Element) {
+          return (
+            <TreeNode node={domNode} onNodeClick={handleNodeClick} path="1" />
+          );
+        }
+      },
+    });
+
+    return (
+      <>
+        <Header />
+        <PanelGroup direction="horizontal">
+          <Panel minSize={20}>
+            <Tabs defaultValue="tree" className="w-full h-full flex flex-col">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="tree">Tree</TabsTrigger>
+                <TabsTrigger value="files">Files</TabsTrigger>
+              </TabsList>
+              <TabsContent value="tree" className="flex-grow overflow-hidden">
+                <div className="h-full overflow-auto bg-gray-50 p-4">
+                  {parsedContent}
                 </div>
-              )}
-              <MonacoEditor
-                height="100%"
-                language="html"
-                theme="vs-dark"
-                value={isParentMode ? parentContent : selectedNodeContent}
-                onChange={handleEditorChange}
-                onMount={handleEditorDidMount}
-                key={editorKey}
-                options={{
-                  minimap: { enabled: false },
-                  scrollBeyondLastLine: false,
-                  fontSize: 14,
-                  wordWrap: "off",
-                }}
-              />
+              </TabsContent>
+              <TabsContent value="files" className="flex-grow overflow-hidden">
+                <FilesView />
+              </TabsContent>
+            </Tabs>
+          </Panel>
+          <PanelResizeHandle className="w-2 bg-gray-200 transition-colors hover:bg-gray-300" />
+          <Panel minSize={20}>
+            <div className="h-full p-4 overflow-scroll">
+              {parse(previewHtmlContent)}
             </div>
-          </div>
-        </Panel>
-        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 transform">
-          <Input
+          </Panel>
+          <PanelResizeHandle className="w-2 bg-gray-200 transition-colors hover:bg-gray-300" />
+          <Panel minSize={20}>
+            <div className="flex h-full flex-col overflow-hidden bg-gray-100">
+              <div className="flex items-center p-4 bg-gray-200">
+                <Switch
+                  id="airplane-mode"
+                  className="mr-2"
+                  checked={isParentMode}
+                  onCheckedChange={handleToggleChange}
+                />
+                <Label htmlFor="parent-mode">Parent Mode</Label>
+                <div className="flex items-center">
+                  <Button
+                    onClick={handleUndo}
+                    disabled={!canUndo}
+                    className="mr-2"
+                    size="sm"
+                  >
+                    <Undo className="h-4 w-4" />
+                  </Button>
+                  <Button onClick={handleRedo} disabled={!canRedo} size="sm">
+                    <Redo className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div>{saveStatus}</div>
+              </div>
+
+              <div className="flex-1">
+                {isLoading && (
+                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-gray-800 bg-opacity-50">
+                    <Loader2 className="h-8 w-8 animate-spin text-white" />
+                  </div>
+                )}
+                <MonacoEditor
+                  height="100%"
+                  language="html"
+                  theme="vs-dark"
+                  value={isParentMode ? parentContent : selectedNodeContent}
+                  onChange={handleEditorChange}
+                  onMount={handleEditorDidMount}
+                  key={editorKey}
+                  options={{
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    fontSize: 14,
+                    wordWrap: "off",
+                  }}
+                />
+              </div>
+            </div>
+          </Panel>
+          {/* <div className="fixed bottom-20 left-1/2 -translate-x-1/2 transform">
+            <Input
             className="w-64 rounded-full px-4 py-2 shadow-lg"
             placeholder="Enter a command..."
             value={command}
             onChange={handleCommandChange}
             onKeyPress={handleCommandSubmit}
-          />
-        </div>
-      </PanelGroup>
-    </>
-  );
-};
+          /> */}
+          {/* </div> */}
+        </PanelGroup>
+      </>
+    );
+  };
 
 export default ProjectEditor;

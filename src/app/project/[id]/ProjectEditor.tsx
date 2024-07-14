@@ -213,10 +213,14 @@ interface ProjectEditorProps {
       }
 
       if (currentElement) {
-        const newSelectedContent = currentElement.outerHTML;
+        const newSelectedContent = unescapeHTML(currentElement.outerHTML);
         updateBothContents(newSelectedContent);
       }
     }, [originalHtmlContent, selectedNodePath]);
+
+    function unescapeHTML(currentElement) {
+      return currentElement.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&');
+    }
 
     const updateHtmlContent = useCallback(
       (newContent: string) => {

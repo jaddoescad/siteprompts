@@ -131,9 +131,7 @@ interface ProjectEditorProps {
       [projectId]
     );
 
-    useEffect(() => {
-      console.log("Initial load");
-      
+    useEffect(() => {      
       if (originalHtmlContent !== lastSavedContent && !isInitialLoad) {
         saveProjectHtmlContent(originalHtmlContent);
       }
@@ -224,7 +222,6 @@ interface ProjectEditorProps {
       (newContent: string) => {
         const parser = new DOMParser();
         const doc = parser.parseFromString(originalHtmlContent, "text/html");
-
         let currentElement = doc.body.firstElementChild;
         for (let i = 1; i < selectedNodePath.length; i++) {
           const index = selectedNodePath[i] - 1;
@@ -380,9 +377,23 @@ interface ProjectEditorProps {
           </Panel>
           <PanelResizeHandle className="w-2 bg-gray-200 transition-colors hover:bg-gray-300" />
           <Panel minSize={20}>
-            <div className="h-full p-4 overflow-scroll">
-              {parse(previewHtmlContent)}
-            </div>
+          <div className="h-full p-4 overflow-hidden">
+            <iframe
+              srcDoc={`
+                <!DOCTYPE html>
+                <html>
+                  <head>
+                    <style>
+                      body { margin: 0; padding: 0; }
+                    </style>
+                  </head>
+                  <body>${previewHtmlContent}</body>
+                </html>
+              `}
+              style={{ width: '100%', height: '100%', border: 'none' }}
+              title="Preview"
+            />
+          </div>
           </Panel>
           <PanelResizeHandle className="w-2 bg-gray-200 transition-colors hover:bg-gray-300" />
           <Panel minSize={20}>
@@ -395,7 +406,7 @@ interface ProjectEditorProps {
                   onCheckedChange={handleToggleChange}
                 />
                 <Label htmlFor="parent-mode">Parent Mode</Label>
-                <div className="flex items-center">
+                <div className="flex items-center ml-6">
                   <Button
                     onClick={handleUndo}
                     disabled={!canUndo}

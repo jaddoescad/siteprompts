@@ -213,7 +213,7 @@ interface ProjectEditorProps {
       }
 
       if (currentElement) {
-        const newSelectedContent = unescapeHTML(currentElement.outerHTML);
+        const newSelectedContent = currentElement.outerHTML;
         updateBothContents(newSelectedContent);
       }
     }, [originalHtmlContent, selectedNodePath]);
@@ -262,8 +262,9 @@ interface ProjectEditorProps {
 
     const updateBothContents = useCallback(
       (newContent) => {
-          setSelectedNodeContent(newContent);
-          const newParentContent = getParentOrFullElement(newContent);
+       const escapedHTML = unescapeHTML(newContent);
+       setSelectedNodeContent(escapedHTML);
+       const newParentContent = getParentOrFullElement(escapedHTML);
           setParentContent(newParentContent);
       },
       [selectedNodeContent]

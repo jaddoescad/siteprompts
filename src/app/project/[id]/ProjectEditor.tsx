@@ -140,7 +140,7 @@ interface ProjectEditorProps {
 
     useEffect(() => {      
       if (originalHtmlContent !== lastSavedContent && !isInitialLoad) {
-        saveProjectHtmlContent(originalHtmlContent);
+        // saveProjectHtmlContent(originalHtmlContent);
       }
 
     }, [originalHtmlContent]);

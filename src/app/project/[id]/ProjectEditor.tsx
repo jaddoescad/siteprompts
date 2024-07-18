@@ -190,9 +190,6 @@ interface ProjectEditorProps {
     };
 
     const updateFullHTMLContent = (newContent) => {
-      // if (newContent.trim() !== "" && selectedNodeContent.trim() === "") {
-      //   console.log("Content added after editor was emptied:", newContent);
-      // }
       const doc = new DOMParser().parseFromString(
         originalHtmlContent,
         "text/html"
@@ -222,8 +219,6 @@ interface ProjectEditorProps {
           parentElement = targetElement;
           targetElement = nextElement;
         }
-        console.log(" newContent.trim()", newContent.trim());
-        console.log(" selectedNodeContent.trim()",  previousEditorContentRef.current.trim());
         // Check if we should insert before the target element
         if (
           newContent.trim() !== "" &&
@@ -247,18 +242,14 @@ interface ProjectEditorProps {
     };
 
     const handleEditorChange = (value) => {
-      setSelectedNodeContent(value);
       updateFullHTMLContent(value);
       previousEditorContentRef.current = value;
     };
 
     useEffect(() => {
-      if (!isInitialLoad) {
-        setIsInitialLoad(true);
-
-      }
-    
-    }, [originalHtmlContent]);
+        setSelectedNodeContent(originalHtmlContent);
+        setSelectedNodePath([1]);
+    }, []);
 
 
     useEffect(() => {
@@ -289,7 +280,7 @@ interface ProjectEditorProps {
       setCommand(e.target.value);
     };
 
-    const handleCommandSubmit = useCallback(
+    const handleCommandSubmit =
       async (e) => {
         if (e.key === "Enter") {
           setIsLoading(true);
@@ -319,9 +310,7 @@ interface ProjectEditorProps {
             setIsLoading(false);
           }
         }
-      },
-      [selectedNodeContent, parentContent, command, isParentMode]
-    );
+      };
 
     // In the ProjectEditor component, update the parsedContent generation:
     const parsedContent = parse(`<body>${originalHtmlContent}</body>`, {

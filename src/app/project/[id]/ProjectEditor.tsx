@@ -45,22 +45,26 @@ const TreeNode = ({ node, onNodeClick, path }) => {
     ) : null;
   }
 
+  const isRootLevel = path === "1";
+
   return (
-    <div className="ml-4">
-      <div className="flex items-center">
-        {hasChildren ? (
-          <button onClick={() => setIsOpen(!isOpen)} className="mr-1">
-            {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-          </button>
-        ) : (
-          <span className="mr-1 h-4 w-4" />
-        )}
-        <span className="cursor-pointer text-blue-600" onClick={handleClick}>
-          &lt;{node.name}&gt; ({path})
-        </span>
-      </div>
-      {isOpen && hasChildren && (
-        <div className="ml-4">
+    <div className={isRootLevel ? "" : "ml-4"}>
+      {!isRootLevel && (
+        <div className="flex items-center">
+          {hasChildren ? (
+            <button onClick={() => setIsOpen(!isOpen)} className="mr-1">
+              {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+            </button>
+          ) : (
+            <span className="mr-1 h-4 w-4" />
+          )}
+          <span className="cursor-pointer text-blue-600" onClick={handleClick}>
+            &lt;{node.name}&gt; ({path})
+          </span>
+        </div>
+      )}
+      {(isOpen || isRootLevel) && hasChildren && (
+        <div className={isRootLevel ? "" : "ml-4"}>
           {node.children
             .filter(
               (child) => child.type !== "text" || child.data.trim() !== ""
@@ -78,6 +82,7 @@ const TreeNode = ({ node, onNodeClick, path }) => {
     </div>
   );
 };
+
 
 
 
@@ -347,7 +352,7 @@ interface ProjectEditorProps {
     );
 
 // In the ProjectEditor component, update the parsedContent generation:
-const parsedContent = parse(originalHtmlContent, {
+const parsedContent = parse(`<body>${originalHtmlContent}</body>`, {
   replace: (domNode) => {
     if (domNode instanceof Element && domNode.type === 'tag') {
       return (

@@ -192,35 +192,36 @@ interface ProjectEditorProps {
     };
 
 
-    const updateFullHTMLContent = useCallback((newSelectedContent) => {
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(originalHtmlContent, "text/html");
+    const updateFullHTMLContent = useCallback((newContent) => {
+      const doc = new DOMParser().parseFromString(originalHtmlContent, "text/html");
+      const isUpdatingEntireBody = selectedNodePath.length === 1 && selectedNodePath[0] === 1;
     
-      let currentElement = doc.body;
-      
-      // Check if we're updating the body itself
-      if (selectedNodePath.length === 1 && selectedNodePath[0] === 1) {
-        // Replace the entire body content
-        doc.body.innerHTML = newSelectedContent;
+      if (isUpdatingEntireBody) {
+        doc.body.innerHTML = newContent;
       } else {
-        // Navigate to the selected element
+        let targetElement = doc.body;
+        let parentElement = doc.body;
+    
+        // Navigate to the target element using the selectedNodePath
         for (let i = 1; i < selectedNodePath.length; i++) {
-          const index = selectedNodePath[i] - 1;
-          if (
-            currentElement &&
-            index >= 0 &&
-            index < currentElement.children.length
-          ) {
-            currentElement = currentElement.children[index] as HTMLElement;
-          } else {
-            console.error("Invalid path 3");
-            return;
+          const childIndex = selectedNodePath[i] - 1;
+          const nextElement = targetElement.children[childIndex] as HTMLElement;
+    
+          if (!nextElement) {
+            // If there's no next element, append the new content to the parent
+            const tempDiv = doc.createElement('div');
+            tempDiv.innerHTML = newContent;
+            parentElement.appendChild(tempDiv.firstElementChild || tempDiv);
+            break;
           }
+          
+          parentElement = targetElement;
+          targetElement = nextElement;
         }
     
-        // Update the selected element
-        if (currentElement) {
-          currentElement.outerHTML = newSelectedContent;
+        // Update the target element if it exists
+        if (targetElement !== parentElement) {
+          targetElement.outerHTML = newContent;
         }
       }
     

@@ -197,7 +197,6 @@ interface ProjectEditorProps {
       const isValidHtml = /^<[^>]+>[\s\S]*<\/[^>]+>$/.test(newContent.trim());
 
       if (!isValidHtml && newContent.trim() !== "") {
-        console.log("not valid html");
         // Wrap the content in a div if it's not valid HTML
         newContent = `<div>${newContent}</div>`;
       }

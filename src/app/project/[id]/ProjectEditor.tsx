@@ -213,7 +213,7 @@ interface ProjectEditorProps {
           ) {
             currentElement = currentElement.children[index] as HTMLElement;
           } else {
-            console.error("Invalid path");
+            console.error("Invalid path 3");
             return;
           }
         }
@@ -242,7 +242,7 @@ interface ProjectEditorProps {
         ) {
           currentElement = currentElement.children[index] as HTMLElement;
         } else {
-          console.error("Invalid path");
+          console.error("Invalid path 2");
           return;
         }
       }

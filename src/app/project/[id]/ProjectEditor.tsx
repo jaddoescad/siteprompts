@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useCallback, useEffect } from "react";
+import React, { useState, useRef, useCallback, useEffect, use } from "react";
 import parse, { Element } from "html-react-parser";
 import dynamic from "next/dynamic";
 import { loader } from "@monaco-editor/react";
@@ -88,20 +88,33 @@ interface ProjectEditorProps {
     projectId: string;
   }
 
-  const ProjectEditor: React.FC<ProjectEditorProps> = ({ initialHtmlContent, projectId }) => {
+  interface EditorState {
+    htmlContent: string;
+    selectedNodeContent: string;
+    selectedNodePath: number[];
+  }
+
+  const ProjectEditor: React.FC<ProjectEditorProps> = ({
+    initialHtmlContent,
+    projectId,
+  }) => {
     const [
-      htmlContentState,
+      editorState,
       {
-        set: setHtmlContent,
-        reset: resetHtmlContent,
-        undo: undoHtmlContent,
-        redo: redoHtmlContent,
+        set: setEditorState,
+        reset: resetEditorState,
+        undo: undoEditorState,
+        redo: redoEditorState,
         canUndo,
         canRedo,
       },
-    ] = useUndo(initialHtmlContent);
+    ] = useUndo<EditorState>({
+      htmlContent: initialHtmlContent,
+      selectedNodeContent: initialHtmlContent,
+      selectedNodePath: [1],
+    });
 
-    const { present: originalHtmlContent } = htmlContentState;
+    const { present: currentState } = editorState;
     const [lastSavedContent, setLastSavedContent] =
       useState(initialHtmlContent);
 
@@ -109,8 +122,6 @@ interface ProjectEditorProps {
       useState(initialHtmlContent);
 
     const [command, setCommand] = useState("");
-    const [selectedNodeContent, setSelectedNodeContent] = useState("");
-    const [selectedNodePath, setSelectedNodePath] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isParentMode, setIsParentMode] = useState(false);
     const [parentContent, setParentContent] = useState("");
@@ -138,10 +149,10 @@ interface ProjectEditorProps {
     );
 
     useEffect(() => {
-      if (originalHtmlContent !== lastSavedContent && !isInitialLoad) {
+      if (currentState.htmlContent !== lastSavedContent && !isInitialLoad) {
         // saveProjectHtmlContent(originalHtmlContent);
       }
-    }, [originalHtmlContent]);
+    }, [currentState.htmlContent]);
 
     const editorRef = useRef(null);
 
@@ -150,9 +161,7 @@ interface ProjectEditorProps {
         return node.data;
       }
       if (node.name === "body") {
-        return node.children
-          ? node.children.map(getNodeContent).join("")
-          : "";
+        return node.children ? node.children.map(getNodeContent).join("") : "";
       }
       const attributes = Object.entries(node.attribs || {})
         .map(([key, value]) => `${key}="${value}"`)
@@ -164,26 +173,31 @@ interface ProjectEditorProps {
         : "";
       return `${openTag}${childContent}${closeTag}`;
     };
-    
+
     const handleNodeClick = (node, path) => {
       const content = getNodeContent(node);
-      setSelectedNodeContent(content);
       const newPath = path.split("-").map(Number);
-      setSelectedNodePath(newPath);
 
-      // Apply highlighting immediately
+      setEditorState({
+        ...currentState,
+        selectedNodeContent: content,
+        selectedNodePath: newPath,
+      });
+
       const newPreviewContent = highlightElementUtil(
-        originalHtmlContent,
+        currentState.htmlContent,
         newPath
       );
       setPreviewHtmlContent(newPreviewContent);
       setEditorKey((prevKey) => prevKey + 1);
     };
 
+  
+
     const handleToggleChange = (checked: boolean) => {
       setIsParentMode(checked);
       if (checked) {
-        const parentElement = getParentOrFullElement(selectedNodeContent);
+        const parentElement = getParentOrFullElement(currentState.selectedNodeContent);
         setParentContent(parentElement);
       }
       setEditorKey((prevKey) => prevKey + 1);
@@ -194,7 +208,6 @@ interface ProjectEditorProps {
     };
 
     const updateFullHTMLContent = (newContent) => {
-
       const isValidHtml = /^<[^>]+>[\s\S]*<\/[^>]+>$/.test(newContent.trim());
 
       if (!isValidHtml && newContent.trim() !== "") {
@@ -203,11 +216,12 @@ interface ProjectEditorProps {
       }
 
       const doc = new DOMParser().parseFromString(
-        originalHtmlContent,
+        currentState.htmlContent,
         "text/html"
       );
+
       const isUpdatingEntireBody =
-        selectedNodePath.length === 1 && selectedNodePath[0] === 1;
+        currentState.selectedNodePath.length === 1 && currentState.selectedNodePath[0] === 1;
 
       if (isUpdatingEntireBody) {
         doc.body.innerHTML = newContent;
@@ -216,8 +230,8 @@ interface ProjectEditorProps {
         let parentElement = doc.body;
 
         // Navigate to the target element using the selectedNodePath
-        for (let i = 1; i < selectedNodePath.length; i++) {
-          const childIndex = selectedNodePath[i] - 1;
+        for (let i = 1; i < currentState.selectedNodePath.length; i++) {
+          const childIndex = currentState.selectedNodePath[i] - 1;
           const nextElement = targetElement.children[childIndex] as HTMLElement;
 
           if (!nextElement) {
@@ -234,153 +248,112 @@ interface ProjectEditorProps {
           previousEditorContentRef.current.trim() === "" &&
           targetElement !== parentElement
         ) {
-          targetElement.insertAdjacentHTML('beforebegin', newContent);
+          targetElement.insertAdjacentHTML("beforebegin", newContent);
         } else if (targetElement !== parentElement) {
           // Update the target element if it exists and we're not inserting before it
           targetElement.outerHTML = newContent;
         }
       }
+      const updatedHtmlContent = doc.body.innerHTML;
 
       // Update the full HTML content
-      setHtmlContent(doc.body.innerHTML);
+      setEditorState({
+        ...currentState,
+        htmlContent: updatedHtmlContent,
+        selectedNodeContent: newContent,
+      });
+      setPreviewHtmlContent(updatedHtmlContent);
     };
 
-    const handleEditorChange = (value) => {
+    const handleEditorChange = (value: string) => {
       if (isParentMode) {
         const newParentContent = value;
-        // Update selectedNodeContent when parent is changed
         const newSelectedNodeContent = replaceParent(
           newParentContent,
-          selectedNodeContent
+          currentState.selectedNodeContent
         );
-
         updateFullHTMLContent(newSelectedNodeContent);
-        previousEditorContentRef.current = newSelectedNodeContent;
       } else {
-      updateFullHTMLContent(value);
-      previousEditorContentRef.current = value;
+        updateFullHTMLContent(value);
       }
     };
 
-
-    // const handleEditorChange = (value) => {
-    //   if (isParentMode) {
-    //     const newParentContent = value;
-    //     // Update selectedNodeContent when parent is changed
-    //     const newSelectedNodeContent = replaceParent(
-    //       newParentContent,
-    //       selectedNodeContent
-    //     );
-    //     setSelectedNodeContent(newSelectedNodeContent);
-    //     setParentContent(newParentContent);
-    //   } else {
-    //     updateBothContents(value);
-    //     setIsInitialLoad(false);
-    //   }
-    // };
-    
-
     useEffect(() => {
-        setSelectedNodeContent(originalHtmlContent);
-        setSelectedNodePath([1]);
+      //fix
+      // setSelectedNodeContent(currentState.htmlContent);
+      // setSelectedNodePath([1]);
+      setEditorState({
+        ...currentState,
+        selectedNodeContent: currentState.htmlContent,
+        selectedNodePath: [1],
+      });
+      
     }, []);
 
-
-    useEffect(() => {
-      if (selectedNodePath.length > 0) {
-        const newPreviewContent = highlightElementUtil(originalHtmlContent, selectedNodePath);
-        setPreviewHtmlContent(newPreviewContent);
-        refreshSelectedNodeContent(originalHtmlContent);
-      } else {
-        setPreviewHtmlContent(originalHtmlContent);
-      }
-    }, [originalHtmlContent, selectedNodePath]);
-
-
-
     const handleUndo = () => {
-      undoHtmlContent()
+      undoEditorState();
+      setEditorKey((prevKey) => prevKey + 1);
     };
 
     const handleRedo = () => {
-      redoHtmlContent();
+      redoEditorState();
+      setEditorKey((prevKey) => prevKey + 1);
     };
-
-    
 
     const handleCommandChange = (e) => {
       setCommand(e.target.value);
     };
 
-    const refreshSelectedNodeContent = (htmlContent) => {
-      const doc = new DOMParser().parseFromString(htmlContent, "text/html");
-      let targetElement = doc.body;
-  
-      for (let i = 1; i < selectedNodePath.length; i++) {
-        const childIndex = selectedNodePath[i] - 1;
-        const nextElement = targetElement.children[childIndex] as HTMLElement;
-  
-        if (!nextElement) {
-          break;
+    const handleCommandSubmit = async (e) => {
+      if (e.key === "Enter") {
+        setIsLoading(true);
+        try {
+          const response = await fetch("/api/claude", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              content: isParentMode ? parentContent : currentState.selectedNodeContent,
+              userInstruction: command,
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error("API request failed");
+          }
+
+          const result = await response.text();
+
+          if (isParentMode) {
+            setParentContent(result);
+            const newParentContent = result;
+            // Update selectedNodeContent when parent is changed
+            const newSelectedNodeContent = replaceParent(
+              newParentContent,
+              currentState.selectedNodeContent
+            );
+
+            updateFullHTMLContent(newSelectedNodeContent);
+          } else {
+            // setSelectedNodeContent(result);
+            setEditorState({
+              ...currentState,
+              selectedNodeContent: result,
+            });
+            updateFullHTMLContent(result);
+          }
+        } catch (error) {
+          console.error("Error calling Claude API:", error);
+          alert("Error calling Claude API");
+        } finally {
+          setIsLoading(false);
         }
-  
-        targetElement = nextElement;
       }
-  
-      const newSelectedNodeContent = targetElement.outerHTML;
-      setSelectedNodeContent(newSelectedNodeContent);
     };
 
-
-    const handleCommandSubmit =
-      async (e) => {
-        if (e.key === "Enter") {
-          setIsLoading(true);
-          try {
-            const response = await fetch("/api/claude", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                content: isParentMode ? parentContent : selectedNodeContent,
-                userInstruction: command,
-              }),
-            });
-
-            if (!response.ok) {
-              throw new Error("API request failed");
-            }
-
-            const result = await response.text();
-
-            if (isParentMode) {
-              setParentContent(result);
-              const newParentContent = result;
-              // Update selectedNodeContent when parent is changed
-              const newSelectedNodeContent = replaceParent(
-                newParentContent,
-                selectedNodeContent
-              );
-
-              updateFullHTMLContent(newSelectedNodeContent);
-
-            } else {
-              setSelectedNodeContent(result);
-              updateFullHTMLContent(result);
-            }
-
-          } catch (error) {
-            console.error("Error calling Claude API:", error);
-            alert("Error calling Claude API");
-          } finally {
-            setIsLoading(false);
-          }
-        }
-      };
-
     // In the ProjectEditor component, update the parsedContent generation:
-    const parsedContent = parse(`<body>${originalHtmlContent}</body>`, {
+    const parsedContent = parse(`<body>${currentState.htmlContent}</body>`, {
       replace: (domNode) => {
         if (domNode instanceof Element && domNode.type === "tag") {
           return (
@@ -467,7 +440,7 @@ interface ProjectEditorProps {
                   height="100%"
                   language="html"
                   theme="vs-dark"
-                  value={isParentMode ? parentContent : selectedNodeContent}
+                  value={isParentMode ? parentContent : currentState.selectedNodeContent}
                   onChange={handleEditorChange}
                   onMount={handleEditorDidMount}
                   key={editorKey}

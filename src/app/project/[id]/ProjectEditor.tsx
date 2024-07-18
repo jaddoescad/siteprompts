@@ -45,26 +45,22 @@ const TreeNode = ({ node, onNodeClick, path }) => {
     ) : null;
   }
 
-  const isRootLevel = path === "1";
-
   return (
-    <div className={isRootLevel ? "" : "ml-4"}>
-      {!isRootLevel && (
-        <div className="flex items-center">
-          {hasChildren ? (
-            <button onClick={() => setIsOpen(!isOpen)} className="mr-1">
-              {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-            </button>
-          ) : (
-            <span className="mr-1 h-4 w-4" />
-          )}
-          <span className="cursor-pointer text-blue-600" onClick={handleClick}>
-            &lt;{node.name}&gt; ({path})
-          </span>
-        </div>
-      )}
-      {(isOpen || isRootLevel) && hasChildren && (
-        <div className={isRootLevel ? "" : "ml-4"}>
+    <div className="ml-4">
+      <div className="flex items-center">
+        {hasChildren ? (
+          <button onClick={() => setIsOpen(!isOpen)} className="mr-1">
+            {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+          </button>
+        ) : (
+          <span className="mr-1 h-4 w-4" />
+        )}
+        <span className="cursor-pointer text-blue-600" onClick={handleClick}>
+          &lt;{node.name}&gt; ({path})
+        </span>
+      </div>
+      {isOpen && hasChildren && (
+        <div className="ml-4">
           {node.children
             .filter(
               (child) => child.type !== "text" || child.data.trim() !== ""
@@ -82,6 +78,7 @@ const TreeNode = ({ node, onNodeClick, path }) => {
     </div>
   );
 };
+
 
 
 
@@ -105,7 +102,8 @@ interface ProjectEditorProps {
     ] = useUndo(initialHtmlContent);
 
     const { present: originalHtmlContent } = htmlContentState;
-    const [lastSavedContent, setLastSavedContent] = useState(initialHtmlContent);
+    const [lastSavedContent, setLastSavedContent] =
+      useState(initialHtmlContent);
 
     const [previewHtmlContent, setPreviewHtmlContent] =
       useState(initialHtmlContent);
@@ -120,6 +118,7 @@ interface ProjectEditorProps {
     const [saveStatus, setSaveStatus] = useState("");
     const [isInitialLoad, setIsInitialLoad] = useState(false);
     const [editorKey, setEditorKey] = useState(0);
+    const previousEditorContentRef = useRef(initialHtmlContent);
 
     const saveProjectHtmlContent = useCallback(
       debounce(async (content) => {
@@ -138,11 +137,10 @@ interface ProjectEditorProps {
       [projectId]
     );
 
-    useEffect(() => {      
+    useEffect(() => {
       if (originalHtmlContent !== lastSavedContent && !isInitialLoad) {
         // saveProjectHtmlContent(originalHtmlContent);
       }
-
     }, [originalHtmlContent]);
 
     const editorRef = useRef(null);
@@ -150,6 +148,11 @@ interface ProjectEditorProps {
     const getNodeContent = (node) => {
       if (node.type === "text") {
         return node.data;
+      }
+      if (node.name === "body") {
+        return node.children
+          ? node.children.map(getNodeContent).join("")
+          : "";
       }
       const attributes = Object.entries(node.attribs || {})
         .map(([key, value]) => `${key}="${value}"`)
@@ -161,13 +164,13 @@ interface ProjectEditorProps {
         : "";
       return `${openTag}${childContent}${closeTag}`;
     };
-
-
+    
     const handleNodeClick = (node, path) => {
       const content = getNodeContent(node);
+      setSelectedNodeContent(content);
       const newPath = path.split("-").map(Number);
       setSelectedNodePath(newPath);
-    
+
       // Apply highlighting immediately
       const newPreviewContent = highlightElementUtil(
         originalHtmlContent,
@@ -176,11 +179,6 @@ interface ProjectEditorProps {
       setPreviewHtmlContent(newPreviewContent);
       setEditorKey((prevKey) => prevKey + 1);
     };
-    
-
-
-
-
 
     const handleToggleChange = (checked) => {
       setIsParentMode(checked);
@@ -191,101 +189,77 @@ interface ProjectEditorProps {
       editorRef.current = editor;
     };
 
+    const updateFullHTMLContent = (newContent) => {
+      // if (newContent.trim() !== "" && selectedNodeContent.trim() === "") {
+      //   console.log("Content added after editor was emptied:", newContent);
+      // }
+      const doc = new DOMParser().parseFromString(
+        originalHtmlContent,
+        "text/html"
+      );
+      const isUpdatingEntireBody =
+        selectedNodePath.length === 1 && selectedNodePath[0] === 1;
 
-    const updateFullHTMLContent = useCallback((newContent) => {
-      const doc = new DOMParser().parseFromString(originalHtmlContent, "text/html");
-      const isUpdatingEntireBody = selectedNodePath.length === 1 && selectedNodePath[0] === 1;
-    
       if (isUpdatingEntireBody) {
         doc.body.innerHTML = newContent;
       } else {
         let targetElement = doc.body;
         let parentElement = doc.body;
-    
+
         // Navigate to the target element using the selectedNodePath
         for (let i = 1; i < selectedNodePath.length; i++) {
           const childIndex = selectedNodePath[i] - 1;
           const nextElement = targetElement.children[childIndex] as HTMLElement;
-    
+
           if (!nextElement) {
             // If there's no next element, append the new content to the parent
-            const tempDiv = doc.createElement('div');
+            const tempDiv = doc.createElement("div");
             tempDiv.innerHTML = newContent;
             parentElement.appendChild(tempDiv.firstElementChild || tempDiv);
             break;
           }
-          
+
           parentElement = targetElement;
           targetElement = nextElement;
         }
-    
-        // Update the target element if it exists
-        if (targetElement !== parentElement) {
+        console.log(" newContent.trim()", newContent.trim());
+        console.log(" selectedNodeContent.trim()",  previousEditorContentRef.current.trim());
+        // Check if we should insert before the target element
+        if (
+          newContent.trim() !== "" &&
+          previousEditorContentRef.current.trim() === "" &&
+          targetElement !== parentElement
+        ) {
+          const tempDiv = doc.createElement("div");
+          tempDiv.innerHTML = newContent;
+          parentElement.insertBefore(
+            tempDiv.firstElementChild || tempDiv,
+            targetElement
+          );
+        } else if (targetElement !== parentElement) {
+          // Update the target element if it exists and we're not inserting before it
           targetElement.outerHTML = newContent;
         }
       }
-    
+
       // Update the full HTML content
       setHtmlContent(doc.body.innerHTML);
-    }, [originalHtmlContent, selectedNodePath]);
-
-    const updateSelectedNodeContent = useCallback(() => {
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(originalHtmlContent, "text/html");
-      console.log("selectedNodePath", selectedNodePath);
-      let currentElement = doc.body;
-      for (let i = 1; i < selectedNodePath.length; i++) {
-        const index = selectedNodePath[i] - 1;
-        if (
-          currentElement &&
-          index >= 0 &&
-          index < currentElement.children.length
-        ) {
-          currentElement = currentElement.children[index] as HTMLElement;
-        } else {
-          console.error("Invalid path 2");
-          return;
-        }
-      }
-
-      if (currentElement) {
-        const newSelectedContent = currentElement.outerHTML;
-        setSelectedNodeContent(newSelectedContent);
-      }
-    }, [originalHtmlContent, selectedNodePath]);
-
-
-    // function unescapeHTML(currentElement) {
-    //   return currentElement.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&');
-    // }
-
-
-    // const updateBothContents = useCallback(
-    //   (newContent) => {
-    //    const escapedHTML = unescapeHTML(newContent);
-    //    setSelectedNodeContent(escapedHTML);
-    //    const newParentContent = getParentOrFullElement(escapedHTML);
-    //       setParentContent(newParentContent);
-    //   },
-    //   [selectedNodeContent]
-    // );
+    };
 
     const handleEditorChange = (value) => {
-      if (isParentMode) {
-        const newParentContent = value;
-        // Update selectedNodeContent when parent is changed
-        const newSelectedNodeContent = replaceParent(
-          newParentContent,
-          selectedNodeContent
-        );
-        setSelectedNodeContent(newSelectedNodeContent);
-        setParentContent(newParentContent);
-      } else {
-        // updateBothContents(value);
-        setIsInitialLoad(false);
-      }
+      setSelectedNodeContent(value);
       updateFullHTMLContent(value);
+      previousEditorContentRef.current = value;
     };
+
+    useEffect(() => {
+      if (!isInitialLoad) {
+        setIsInitialLoad(true);
+
+      }
+    
+    }, [originalHtmlContent]);
+
 
     useEffect(() => {
       // Update previewHtmlContent whenever originalHtmlContent changes
@@ -300,11 +274,8 @@ interface ProjectEditorProps {
       }
     }, [originalHtmlContent, selectedNodePath]);
 
-    useEffect(() => {
-      updateSelectedNodeContent();
-    }, [selectedNodePath]);
 
-    
+
 
     const handleUndo = useCallback(() => {
       undoHtmlContent();
@@ -352,16 +323,16 @@ interface ProjectEditorProps {
       [selectedNodeContent, parentContent, command, isParentMode]
     );
 
-// In the ProjectEditor component, update the parsedContent generation:
-const parsedContent = parse(`<body>${originalHtmlContent}</body>`, {
-  replace: (domNode) => {
-    if (domNode instanceof Element && domNode.type === 'tag') {
-      return (
-        <TreeNode node={domNode} onNodeClick={handleNodeClick} path="1" />
-      );
-    }
-  },
-});
+    // In the ProjectEditor component, update the parsedContent generation:
+    const parsedContent = parse(`<body>${originalHtmlContent}</body>`, {
+      replace: (domNode) => {
+        if (domNode instanceof Element && domNode.type === "tag") {
+          return (
+            <TreeNode node={domNode} onNodeClick={handleNodeClick} path="1" />
+          );
+        }
+      },
+    });
 
     return (
       <>
@@ -385,9 +356,9 @@ const parsedContent = parse(`<body>${originalHtmlContent}</body>`, {
           </Panel>
           <PanelResizeHandle className="w-2 bg-gray-200 transition-colors hover:bg-gray-300" />
           <Panel minSize={20}>
-          <div className="h-full p-4 overflow-hidden">
-            <iframe
-              srcDoc={`
+            <div className="h-full p-4 overflow-hidden">
+              <iframe
+                srcDoc={`
                 <!DOCTYPE html>
                 <html>
                   <head>
@@ -398,10 +369,10 @@ const parsedContent = parse(`<body>${originalHtmlContent}</body>`, {
                   <body>${previewHtmlContent}</body>
                 </html>
               `}
-              style={{ width: '100%', height: '100%', border: 'none' }}
-              title="Preview"
-            />
-          </div>
+                style={{ width: "100%", height: "100%", border: "none" }}
+                title="Preview"
+              />
+            </div>
           </Panel>
           <PanelResizeHandle className="w-2 bg-gray-200 transition-colors hover:bg-gray-300" />
           <Panel minSize={20}>
@@ -456,12 +427,12 @@ const parsedContent = parse(`<body>${originalHtmlContent}</body>`, {
           </Panel>
           <div className="fixed bottom-20 left-1/2 -translate-x-1/2 transform">
             <Input
-            className="w-64 rounded-full px-4 py-2 shadow-lg"
-            placeholder="Enter a command..."
-            value={command}
-            onChange={handleCommandChange}
-            onKeyPress={handleCommandSubmit}
-          />
+              className="w-64 rounded-full px-4 py-2 shadow-lg"
+              placeholder="Enter a command..."
+              value={command}
+              onChange={handleCommandChange}
+              onKeyPress={handleCommandSubmit}
+            />
           </div>
         </PanelGroup>
       </>

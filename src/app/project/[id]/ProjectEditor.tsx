@@ -180,8 +180,12 @@ interface ProjectEditorProps {
       setEditorKey((prevKey) => prevKey + 1);
     };
 
-    const handleToggleChange = (checked) => {
+    const handleToggleChange = (checked: boolean) => {
       setIsParentMode(checked);
+      if (checked) {
+        const parentElement = getParentOrFullElement(selectedNodeContent);
+        setParentContent(parentElement);
+      }
       setEditorKey((prevKey) => prevKey + 1);
     };
 
@@ -242,9 +246,39 @@ interface ProjectEditorProps {
     };
 
     const handleEditorChange = (value) => {
+      if (isParentMode) {
+        const newParentContent = value;
+        // Update selectedNodeContent when parent is changed
+        const newSelectedNodeContent = replaceParent(
+          newParentContent,
+          selectedNodeContent
+        );
+
+        updateFullHTMLContent(newSelectedNodeContent);
+        previousEditorContentRef.current = newSelectedNodeContent;
+      } else {
       updateFullHTMLContent(value);
       previousEditorContentRef.current = value;
+      }
     };
+
+
+    // const handleEditorChange = (value) => {
+    //   if (isParentMode) {
+    //     const newParentContent = value;
+    //     // Update selectedNodeContent when parent is changed
+    //     const newSelectedNodeContent = replaceParent(
+    //       newParentContent,
+    //       selectedNodeContent
+    //     );
+    //     setSelectedNodeContent(newSelectedNodeContent);
+    //     setParentContent(newParentContent);
+    //   } else {
+    //     updateBothContents(value);
+    //     setIsInitialLoad(false);
+    //   }
+    // };
+    
 
     useEffect(() => {
         setSelectedNodeContent(originalHtmlContent);
@@ -319,8 +353,23 @@ interface ProjectEditorProps {
             }
 
             const result = await response.text();
-            // Update the selected node content and HTML content
-            // updateBothContents(result);
+
+            if (isParentMode) {
+              setParentContent(result);
+              const newParentContent = result;
+              // Update selectedNodeContent when parent is changed
+              const newSelectedNodeContent = replaceParent(
+                newParentContent,
+                selectedNodeContent
+              );
+
+              updateFullHTMLContent(newSelectedNodeContent);
+
+            } else {
+              setSelectedNodeContent(result);
+              updateFullHTMLContent(result);
+            }
+
           } catch (error) {
             console.error("Error calling Claude API:", error);
             alert("Error calling Claude API");

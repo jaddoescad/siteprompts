@@ -189,7 +189,19 @@ interface ProjectEditorProps {
       editorRef.current = editor;
     };
 
+
+    
+
     const updateFullHTMLContent = (newContent) => {
+
+      const isValidHtml = /^<[^>]+>[\s\S]*<\/[^>]+>$/.test(newContent.trim());
+
+      if (!isValidHtml && newContent.trim() !== "") {
+        console.log("not valid html");
+        // Wrap the content in a div if it's not valid HTML
+        newContent = `<div>${newContent}</div>`;
+      }
+
       const doc = new DOMParser().parseFromString(
         originalHtmlContent,
         "text/html"
@@ -209,10 +221,7 @@ interface ProjectEditorProps {
           const nextElement = targetElement.children[childIndex] as HTMLElement;
 
           if (!nextElement) {
-            // If there's no next element, append the new content to the parent
-            const tempDiv = doc.createElement("div");
-            tempDiv.innerHTML = newContent;
-            parentElement.appendChild(tempDiv.firstElementChild || tempDiv);
+            parentElement.innerHTML += newContent;
             break;
           }
 
@@ -225,12 +234,7 @@ interface ProjectEditorProps {
           previousEditorContentRef.current.trim() === "" &&
           targetElement !== parentElement
         ) {
-          const tempDiv = doc.createElement("div");
-          tempDiv.innerHTML = newContent;
-          parentElement.insertBefore(
-            tempDiv.firstElementChild || tempDiv,
-            targetElement
-          );
+          targetElement.insertAdjacentHTML('beforebegin', newContent);
         } else if (targetElement !== parentElement) {
           // Update the target element if it exists and we're not inserting before it
           targetElement.outerHTML = newContent;

@@ -56,7 +56,7 @@ const TreeNode = ({ node, onNodeClick, path }) => {
           <span className="mr-1 h-4 w-4" />
         )}
         <span className="cursor-pointer text-blue-600" onClick={handleClick}>
-          &lt;{node.name}&gt;
+          &lt;{node.name}&gt; ({path})
         </span>
       </div>
       {isOpen && hasChildren && (
@@ -78,6 +78,8 @@ const TreeNode = ({ node, onNodeClick, path }) => {
     </div>
   );
 };
+
+
 
 interface ProjectEditorProps {
     initialHtmlContent: string;
@@ -155,13 +157,12 @@ interface ProjectEditorProps {
       return `${openTag}${childContent}${closeTag}`;
     };
 
+
     const handleNodeClick = (node, path) => {
       const content = getNodeContent(node);
-      updateBothContents(content);
-
       const newPath = path.split("-").map(Number);
       setSelectedNodePath(newPath);
-
+    
       // Apply highlighting immediately
       const newPreviewContent = highlightElementUtil(
         originalHtmlContent,
@@ -170,17 +171,11 @@ interface ProjectEditorProps {
       setPreviewHtmlContent(newPreviewContent);
       setEditorKey((prevKey) => prevKey + 1);
     };
+    
 
 
-    useEffect(() => {
-      updateBothContents(originalHtmlContent);
-    }, []);
 
-    useEffect(() => {
-      if (selectedNodeContent !== "") {
-        updateHtmlContent(selectedNodeContent);
-      }
-    }, [selectedNodeContent]);
+
 
     const handleToggleChange = (checked) => {
       setIsParentMode(checked);
@@ -192,12 +187,47 @@ interface ProjectEditorProps {
     };
 
 
+    const updateFullHTMLContent = useCallback((newSelectedContent) => {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(originalHtmlContent, "text/html");
+    
+      let currentElement = doc.body;
+      
+      // Check if we're updating the body itself
+      if (selectedNodePath.length === 1 && selectedNodePath[0] === 1) {
+        // Replace the entire body content
+        doc.body.innerHTML = newSelectedContent;
+      } else {
+        // Navigate to the selected element
+        for (let i = 1; i < selectedNodePath.length; i++) {
+          const index = selectedNodePath[i] - 1;
+          if (
+            currentElement &&
+            index >= 0 &&
+            index < currentElement.children.length
+          ) {
+            currentElement = currentElement.children[index] as HTMLElement;
+          } else {
+            console.error("Invalid path");
+            return;
+          }
+        }
+    
+        // Update the selected element
+        if (currentElement) {
+          currentElement.outerHTML = newSelectedContent;
+        }
+      }
+    
+      // Update the full HTML content
+      setHtmlContent(doc.body.innerHTML);
+    }, [originalHtmlContent, selectedNodePath]);
 
     const updateSelectedNodeContent = useCallback(() => {
       const parser = new DOMParser();
       const doc = parser.parseFromString(originalHtmlContent, "text/html");
-
-      let currentElement = doc.body.firstElementChild;
+      console.log("selectedNodePath", selectedNodePath);
+      let currentElement = doc.body;
       for (let i = 1; i < selectedNodePath.length; i++) {
         const index = selectedNodePath[i] - 1;
         if (
@@ -205,7 +235,7 @@ interface ProjectEditorProps {
           index >= 0 &&
           index < currentElement.children.length
         ) {
-          currentElement = currentElement.children[index];
+          currentElement = currentElement.children[index] as HTMLElement;
         } else {
           console.error("Invalid path");
           return;
@@ -214,61 +244,25 @@ interface ProjectEditorProps {
 
       if (currentElement) {
         const newSelectedContent = currentElement.outerHTML;
-        updateBothContents(newSelectedContent);
+        setSelectedNodeContent(newSelectedContent);
       }
     }, [originalHtmlContent, selectedNodePath]);
 
-    function unescapeHTML(currentElement) {
-      return currentElement.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&');
-    }
 
-    const updateHtmlContent = useCallback(
-      (newContent: string) => {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(originalHtmlContent, "text/html");
-        let currentElement = doc.body.firstElementChild;
-        for (let i = 1; i < selectedNodePath.length; i++) {
-          const index = selectedNodePath[i] - 1;
-          if (
-            currentElement &&
-            index >= 0 &&
-            index < currentElement.children.length
-          ) {
-            currentElement = currentElement.children[index];
-          } else {
-            console.error("Invalid path");
-            return;
-          }
-        }
+    // function unescapeHTML(currentElement) {
+    //   return currentElement.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&');
+    // }
 
-        if (currentElement) {
-          currentElement.outerHTML = newContent;
-          const newOriginalContent = doc.body.innerHTML;
-          setHtmlContent(newOriginalContent);
 
-          // Apply highlighting to the updated content
-          const newPreviewContent = highlightElementUtil(
-            newOriginalContent,
-            selectedNodePath
-          );
-          setPreviewHtmlContent(newPreviewContent);
-        }
-      },
-      [
-        originalHtmlContent,
-        selectedNodePath
-      ]
-    );
-
-    const updateBothContents = useCallback(
-      (newContent) => {
-       const escapedHTML = unescapeHTML(newContent);
-       setSelectedNodeContent(escapedHTML);
-       const newParentContent = getParentOrFullElement(escapedHTML);
-          setParentContent(newParentContent);
-      },
-      [selectedNodeContent]
-    );
+    // const updateBothContents = useCallback(
+    //   (newContent) => {
+    //    const escapedHTML = unescapeHTML(newContent);
+    //    setSelectedNodeContent(escapedHTML);
+    //    const newParentContent = getParentOrFullElement(escapedHTML);
+    //       setParentContent(newParentContent);
+    //   },
+    //   [selectedNodeContent]
+    // );
 
     const handleEditorChange = (value) => {
       if (isParentMode) {
@@ -281,9 +275,10 @@ interface ProjectEditorProps {
         setSelectedNodeContent(newSelectedNodeContent);
         setParentContent(newParentContent);
       } else {
-        updateBothContents(value);
+        // updateBothContents(value);
         setIsInitialLoad(false);
       }
+      updateFullHTMLContent(value);
     };
 
     useEffect(() => {
@@ -294,23 +289,24 @@ interface ProjectEditorProps {
           selectedNodePath
         );
         setPreviewHtmlContent(newPreviewContent);
-        updateSelectedNodeContent();
       } else {
         setPreviewHtmlContent(originalHtmlContent);
-        updateSelectedNodeContent();
       }
     }, [originalHtmlContent, selectedNodePath]);
+
+    useEffect(() => {
+      updateSelectedNodeContent();
+    }, [selectedNodePath]);
+
     
 
     const handleUndo = useCallback(() => {
       undoHtmlContent();
-      // updateSelectedNodeContent();
-    }, [undoHtmlContent, updateSelectedNodeContent]);
+    }, [undoHtmlContent]);
 
     const handleRedo = useCallback(() => {
       redoHtmlContent();
-      // 
-    }, [redoHtmlContent, updateSelectedNodeContent]);
+    }, [redoHtmlContent]);
 
     const handleCommandChange = (e) => {
       setCommand(e.target.value);
@@ -338,7 +334,7 @@ interface ProjectEditorProps {
 
             const result = await response.text();
             // Update the selected node content and HTML content
-            updateBothContents(result);
+            // updateBothContents(result);
           } catch (error) {
             console.error("Error calling Claude API:", error);
             alert("Error calling Claude API");
@@ -350,15 +346,16 @@ interface ProjectEditorProps {
       [selectedNodeContent, parentContent, command, isParentMode]
     );
 
-    const parsedContent = parse(originalHtmlContent, {
-      replace: (domNode) => {
-        if (domNode instanceof Element) {
-          return (
-            <TreeNode node={domNode} onNodeClick={handleNodeClick} path="1" />
-          );
-        }
-      },
-    });
+// In the ProjectEditor component, update the parsedContent generation:
+const parsedContent = parse(originalHtmlContent, {
+  replace: (domNode) => {
+    if (domNode instanceof Element && domNode.type === 'tag') {
+      return (
+        <TreeNode node={domNode} onNodeClick={handleNodeClick} path="1" />
+      );
+    }
+  },
+});
 
     return (
       <>
@@ -466,3 +463,4 @@ interface ProjectEditorProps {
   };
 
 export default ProjectEditor;
+

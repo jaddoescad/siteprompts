@@ -189,9 +189,6 @@ interface ProjectEditorProps {
       editorRef.current = editor;
     };
 
-
-    
-
     const updateFullHTMLContent = (newContent) => {
 
       const isValidHtml = /^<[^>]+>[\s\S]*<\/[^>]+>$/.test(newContent.trim());
@@ -256,13 +253,10 @@ interface ProjectEditorProps {
 
 
     useEffect(() => {
-      // Update previewHtmlContent whenever originalHtmlContent changes
       if (selectedNodePath.length > 0) {
-        const newPreviewContent = highlightElementUtil(
-          originalHtmlContent,
-          selectedNodePath
-        );
+        const newPreviewContent = highlightElementUtil(originalHtmlContent, selectedNodePath);
         setPreviewHtmlContent(newPreviewContent);
+        refreshSelectedNodeContent(originalHtmlContent);
       } else {
         setPreviewHtmlContent(originalHtmlContent);
       }
@@ -270,18 +264,39 @@ interface ProjectEditorProps {
 
 
 
+    const handleUndo = () => {
+      undoHtmlContent()
+    };
 
-    const handleUndo = useCallback(() => {
-      undoHtmlContent();
-    }, [undoHtmlContent]);
-
-    const handleRedo = useCallback(() => {
+    const handleRedo = () => {
       redoHtmlContent();
-    }, [redoHtmlContent]);
+    };
+
+    
 
     const handleCommandChange = (e) => {
       setCommand(e.target.value);
     };
+
+    const refreshSelectedNodeContent = (htmlContent) => {
+      const doc = new DOMParser().parseFromString(htmlContent, "text/html");
+      let targetElement = doc.body;
+  
+      for (let i = 1; i < selectedNodePath.length; i++) {
+        const childIndex = selectedNodePath[i] - 1;
+        const nextElement = targetElement.children[childIndex] as HTMLElement;
+  
+        if (!nextElement) {
+          break;
+        }
+  
+        targetElement = nextElement;
+      }
+  
+      const newSelectedNodeContent = targetElement.outerHTML;
+      setSelectedNodeContent(newSelectedNodeContent);
+    };
+
 
     const handleCommandSubmit =
       async (e) => {

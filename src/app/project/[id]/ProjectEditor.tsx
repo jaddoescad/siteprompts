@@ -402,6 +402,11 @@ interface ProjectEditorProps {
                 srcDoc={`
                 <!DOCTYPE html>
                 <html>
+                  <head>
+                    <style>
+                      body { margin: 0; padding: 0; }
+                    </style>
+                  </head>
                   <body>${previewHtmlContent}</body>
                 </html>
               `}

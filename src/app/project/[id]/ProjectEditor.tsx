@@ -150,7 +150,7 @@ interface ProjectEditorProps {
 
     useEffect(() => {
       if (currentState.htmlContent !== lastSavedContent && !isInitialLoad) {
-        // saveProjectHtmlContent(originalHtmlContent);
+        saveProjectHtmlContent(currentState.htmlContent);
       }
     }, [currentState.htmlContent]);
 
@@ -317,13 +317,15 @@ interface ProjectEditorProps {
       if (e.key === "Enter") {
         setIsLoading(true);
         try {
+          const editorContent = editorRef?.current?.getValue();
+
           const response = await fetch("/api/claude", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              content: isParentMode ? parentContent : currentState.selectedNodeContent,
+              content: editorContent,
               userInstruction: command,
             }),
           });
@@ -352,6 +354,7 @@ interface ProjectEditorProps {
             });
             updateFullHTMLContent(result);
           }
+          editorRef.current.setValue(result);
         } catch (error) {
           console.error("Error calling Claude API:", error);
           alert("Error calling Claude API");
@@ -399,11 +402,6 @@ interface ProjectEditorProps {
                 srcDoc={`
                 <!DOCTYPE html>
                 <html>
-                  <head>
-                    <style>
-                      body { margin: 0; padding: 0; }
-                    </style>
-                  </head>
                   <body>${previewHtmlContent}</body>
                 </html>
               `}

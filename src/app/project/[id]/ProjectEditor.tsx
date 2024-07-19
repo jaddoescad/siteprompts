@@ -273,8 +273,10 @@ interface ProjectEditorProps {
           currentState.selectedNodeContent
         );
         updateFullHTMLContent(newSelectedNodeContent);
+        previousEditorContentRef.current = newParentContent;
       } else {
         updateFullHTMLContent(value);
+        previousEditorContentRef.current = value;
       }
     };
 

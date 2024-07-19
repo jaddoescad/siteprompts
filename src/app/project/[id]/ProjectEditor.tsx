@@ -259,8 +259,7 @@ interface ProjectEditorProps {
       // Update the full HTML content
       setEditorState({
         ...currentState,
-        htmlContent: updatedHtmlContent,
-        selectedNodeContent: newContent,
+        htmlContent: updatedHtmlContent
       });
       setPreviewHtmlContent(updatedHtmlContent);
     };
@@ -291,6 +290,14 @@ interface ProjectEditorProps {
       });
       
     }, []);
+
+    useEffect(() => {
+      const newPreviewContent = highlightElementUtil(
+        currentState.htmlContent,
+        currentState.selectedNodePath
+      );
+      setPreviewHtmlContent(newPreviewContent);
+    }, [currentState.htmlContent]);
 
     const handleUndo = () => {
       undoEditorState();

@@ -160,9 +160,6 @@ interface ProjectEditorProps {
       if (node.type === "text") {
         return node.data;
       }
-      if (node.name === "body") {
-        return node.children ? node.children.map(getNodeContent).join("") : "";
-      }
       const attributes = Object.entries(node.attribs || {})
         .map(([key, value]) => `${key}="${value}"`)
         .join(" ");

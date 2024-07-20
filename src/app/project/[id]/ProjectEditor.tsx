@@ -71,6 +71,7 @@ loader.config({
     const [editorKey, setEditorKey] = useState(0);
     const previousEditorContentRef = useRef(initialHtmlContent);
     const iframeRef = useRef<HTMLIFrameElement>(null);
+    const editorRef = useRef(null);
 
     useEffect(() => {
       const newPreviewContent = highlightElementUtil(
@@ -78,10 +79,10 @@ loader.config({
         currentState.selectedNodePath
       );
       updateIframeContent(newPreviewContent, iframeRef);
+      setPreviewHtmlContent(newPreviewContent);
     }, [
       currentState.htmlContent,
-      currentState.selectedNodePath,
-      updateIframeContent,
+      currentState.selectedNodePath
     ]);
 
     useEffect(() => {
@@ -89,6 +90,7 @@ loader.config({
         saveProjectHtmlContent(currentState.htmlContent);
       }
     }, [currentState.htmlContent]);
+
 
     const saveProjectHtmlContent = debounce(async (content) => {
       setSaveStatus("Saving...");
@@ -100,11 +102,8 @@ loader.config({
       } catch (error) {
         console.error("Error saving HTML content:", error);
         setSaveStatus("Error saving");
-        // Handle error (e.g., show error message to user)
       }
     }, 1000);
-
-    const editorRef = useRef(null);
 
     const handleNodeClick = (node, path) => {
       const content = getNodeContent(node);
@@ -197,31 +196,25 @@ loader.config({
         selectedNodeContent: newContent,
         htmlContent: updatedHtmlContent,
       });
-      setPreviewHtmlContent(updatedHtmlContent);
     };
 
     const handleEditorChange = (value: string) => {
+      let newContent: string;
+
       if (isParentMode) {
         const newParentContent = value;
-        const newSelectedNodeContent = replaceParent(
+        newContent = replaceParent(
           newParentContent,
           currentState.selectedNodeContent
         );
-        updateFullHTMLContent(newSelectedNodeContent);
-        previousEditorContentRef.current = newParentContent;
       } else {
-        updateFullHTMLContent(value);
-        previousEditorContentRef.current = value;
+        newContent = value;
       }
+
+      updateFullHTMLContent(newContent);
+      previousEditorContentRef.current = value;
     };
 
-    useEffect(() => {
-      const newPreviewContent = highlightElementUtil(
-        currentState.htmlContent,
-        currentState.selectedNodePath
-      );
-      setPreviewHtmlContent(newPreviewContent);
-    }, [currentState.htmlContent]);
 
     const handleUndo = () => {
       undoEditorState();

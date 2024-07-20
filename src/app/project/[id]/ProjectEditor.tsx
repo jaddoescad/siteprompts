@@ -407,6 +407,7 @@ interface ProjectEditorProps {
                   <html>
                     <head>
                       <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                      <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
                       <style>
                         body {
                           margin: 0;
@@ -414,7 +415,7 @@ interface ProjectEditorProps {
                           width: 100%;
                           height: 100%;
                           box-sizing: border-box;
-                          font-family: 'Roboto', sans-serif;
+                          font-family:  'Open Sans', sans-serif;
                         }
                         #content-wrapper {
                           max-width: 100%;

@@ -5,7 +5,7 @@ import parse, { Element } from "html-react-parser";
 import dynamic from "next/dynamic";
 import { loader } from "@monaco-editor/react";
 import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels";
-import { ChevronDown, ChevronRight, Redo, Undo } from "lucide-react";
+import { Redo, Undo } from "lucide-react";
 import { Loader2 } from "lucide-react"; // Import Loader2 icon
 import { highlightElementUtil } from "@/utilities/highlightelement";
 import { getParentOrFullElement } from "@/utilities/getParentOrFullElement";
@@ -20,6 +20,10 @@ import useUndo from "use-undo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { TreeNode } from "../TreeNode";
+import { updateIframeContent } from "@/utilities/iframeUtils";
+import { getNodeContent } from "@/utilities/nodeUtils";
+import { EditorState, ProjectEditorProps } from "@/types/types";
 
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
@@ -29,70 +33,6 @@ const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
 loader.config({
   paths: { vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.33.0/min/vs" },
 });
-
-const TreeNode = ({ node, onNodeClick, path }) => {
-  const [isOpen, setIsOpen] = useState(true);
-  const hasChildren = node.children && node.children.length > 0;
-
-  const handleClick = (e) => {
-    e.stopPropagation();
-    onNodeClick(node, path);
-  };
-
-  if (node.type === "text") {
-    return node.data.trim() ? (
-      <div className="ml-4 text-gray-600">{node.data}</div>
-    ) : null;
-  }
-
-  return (
-    <div className="ml-4">
-      <div className="flex items-center">
-        {hasChildren ? (
-          <button onClick={() => setIsOpen(!isOpen)} className="mr-1">
-            {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-          </button>
-        ) : (
-          <span className="mr-1 h-4 w-4" />
-        )}
-        <span className="cursor-pointer text-blue-600" onClick={handleClick}>
-          &lt;{node.name}&gt; ({path})
-        </span>
-      </div>
-      {isOpen && hasChildren && (
-        <div className="ml-4">
-          {node.children
-            .filter(
-              (child) => child.type !== "text" || child.data.trim() !== ""
-            )
-            .map((child, idx) => (
-              <TreeNode
-                key={idx}
-                node={child}
-                onNodeClick={onNodeClick}
-                path={`${path}-${idx + 1}`}
-              />
-            ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
-
-
-
-
-interface ProjectEditorProps {
-    initialHtmlContent: string;
-    projectId: string;
-  }
-
-  interface EditorState {
-    htmlContent: string;
-    selectedNodeContent: string;
-    selectedNodePath: number[];
-  }
 
   const ProjectEditor: React.FC<ProjectEditorProps> = ({
     initialHtmlContent,
@@ -132,83 +72,17 @@ interface ProjectEditorProps {
     const previousEditorContentRef = useRef(initialHtmlContent);
     const iframeRef = useRef<HTMLIFrameElement>(null);
 
-
-    const saveProjectHtmlContent = useCallback(
-      debounce(async (content) => {
-        setSaveStatus("Saving...");
-        try {
-          await saveHtmlContent(projectId, content);
-          setLastSavedContent(content);
-          setSaveStatus("Saved");
-          setTimeout(() => setSaveStatus(""), 2000);
-        } catch (error) {
-          console.error("Error saving HTML content:", error);
-          setSaveStatus("Error saving");
-          // Handle error (e.g., show error message to user)
-        }
-      }, 1000),
-      [projectId]
-    );
-
-    const updateIframeContent = useCallback((content: string) => {
-      if (iframeRef.current) {
-        const iframe = iframeRef.current;
-        const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-    
-        if (iframeDoc) {
-          // Store the current scroll position
-          const scrollPosition = {
-            x: iframeDoc.documentElement.scrollLeft || iframeDoc.body.scrollLeft,
-            y: iframeDoc.documentElement.scrollTop || iframeDoc.body.scrollTop
-          };
-    
-          // Update the content
-          const contentWrapper = iframeDoc.getElementById('content-wrapper');
-          if (contentWrapper) {
-            contentWrapper.innerHTML = content;
-          } else {
-            // If content-wrapper doesn't exist, update the body
-            iframeDoc.body.innerHTML = `<div id="content-wrapper">${content}</div>`;
-          }
-    
-          // Restore the scroll position
-          iframeDoc.documentElement.scrollTo(scrollPosition.x, scrollPosition.y);
-          iframeDoc.body.scrollTo(scrollPosition.x, scrollPosition.y);
-    
-          // Reapply styles
-          const styleElement = iframeDoc.getElementById('highlight-styles');
-          if (!styleElement) {
-            const newStyle = iframeDoc.createElement('style');
-            newStyle.id = 'highlight-styles';
-            newStyle.textContent = `
-              .highlight-element {
-                position: relative;
-              }
-              .highlight-element::after {
-                content: '';
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                border: 2px solid red;
-                pointer-events: none;
-                z-index: 9999;
-              }
-            `;
-            iframeDoc.head.appendChild(newStyle);
-          }
-        }
-      }
-    }, []);
-
     useEffect(() => {
       const newPreviewContent = highlightElementUtil(
         currentState.htmlContent,
         currentState.selectedNodePath
       );
-      updateIframeContent(newPreviewContent);
-    }, [currentState.htmlContent, currentState.selectedNodePath, updateIframeContent]);
+      updateIframeContent(newPreviewContent, iframeRef);
+    }, [
+      currentState.htmlContent,
+      currentState.selectedNodePath,
+      updateIframeContent,
+    ]);
 
     useEffect(() => {
       if (currentState.htmlContent !== lastSavedContent && !isInitialLoad) {
@@ -216,22 +90,21 @@ interface ProjectEditorProps {
       }
     }, [currentState.htmlContent]);
 
-    const editorRef = useRef(null);
-
-    const getNodeContent = (node) => {
-      if (node.type === "text") {
-        return node.data;
+    const saveProjectHtmlContent = debounce(async (content) => {
+      setSaveStatus("Saving...");
+      try {
+        await saveHtmlContent(projectId, content);
+        setLastSavedContent(content);
+        setSaveStatus("Saved");
+        setTimeout(() => setSaveStatus(""), 2000);
+      } catch (error) {
+        console.error("Error saving HTML content:", error);
+        setSaveStatus("Error saving");
+        // Handle error (e.g., show error message to user)
       }
-      const attributes = Object.entries(node.attribs || {})
-        .map(([key, value]) => `${key}="${value}"`)
-        .join(" ");
-      const openTag = `<${node.name}${attributes ? " " + attributes : ""}>`;
-      const closeTag = `</${node.name}>`;
-      const childContent = node.children
-        ? node.children.map(getNodeContent).join("")
-        : "";
-      return `${openTag}${childContent}${closeTag}`;
-    };
+    }, 1000);
+
+    const editorRef = useRef(null);
 
     const handleNodeClick = (node, path) => {
       const content = getNodeContent(node);
@@ -251,12 +124,12 @@ interface ProjectEditorProps {
       setEditorKey((prevKey) => prevKey + 1);
     };
 
-  
-
     const handleToggleChange = (checked: boolean) => {
       setIsParentMode(checked);
       if (checked) {
-        const parentElement = getParentOrFullElement(currentState.selectedNodeContent);
+        const parentElement = getParentOrFullElement(
+          currentState.selectedNodeContent
+        );
         setParentContent(parentElement);
       }
       setEditorKey((prevKey) => prevKey + 1);
@@ -282,7 +155,8 @@ interface ProjectEditorProps {
       );
 
       const isUpdatingEntireBody =
-        currentState.selectedNodePath.length === 1 && currentState.selectedNodePath[0] === 1;
+        currentState.selectedNodePath.length === 1 &&
+        currentState.selectedNodePath[0] === 1;
 
       if (isUpdatingEntireBody) {
         doc.body.innerHTML = content;
@@ -321,7 +195,7 @@ interface ProjectEditorProps {
       setEditorState({
         ...currentState,
         selectedNodeContent: newContent,
-        htmlContent: updatedHtmlContent
+        htmlContent: updatedHtmlContent,
       });
       setPreviewHtmlContent(updatedHtmlContent);
     };
@@ -340,18 +214,6 @@ interface ProjectEditorProps {
         previousEditorContentRef.current = value;
       }
     };
-
-    useEffect(() => {
-      //fix
-      // setSelectedNodeContent(currentState.htmlContent);
-      // setSelectedNodePath([1]);
-      setEditorState({
-        ...currentState,
-        selectedNodeContent: currentState.htmlContent,
-        selectedNodePath: [1],
-      });
-      
-    }, []);
 
     useEffect(() => {
       const newPreviewContent = highlightElementUtil(
@@ -412,7 +274,6 @@ interface ProjectEditorProps {
             // setSelectedNodeContent(result);
             setEditorKey((prevKey) => prevKey + 1);
             updateFullHTMLContent(result);
-
           }
           // editorRef.current.setValue(result);
         } catch (error) {
@@ -434,8 +295,6 @@ interface ProjectEditorProps {
         }
       },
     });
-
-
 
     return (
       <>
@@ -460,9 +319,9 @@ interface ProjectEditorProps {
           <PanelResizeHandle className="w-2 bg-gray-200 transition-colors hover:bg-gray-300" />
           <Panel minSize={20}>
             <div className="h-full p-4 overflow-hidden">
-            <iframe
-  ref={iframeRef}
-  srcDoc={`
+              <iframe
+                ref={iframeRef}
+                srcDoc={`
     <!DOCTYPE html>
     <html>
       <head>
@@ -490,10 +349,10 @@ interface ProjectEditorProps {
       </body>
     </html>
   `}
-  style={{ width: "100%", height: "100%", border: "none" }}
-  title="Preview"
-  onLoad={() => updateIframeContent(previewHtmlContent)}
-/>
+                style={{ width: "100%", height: "100%", border: "none" }}
+                title="Preview"
+                onLoad={() => updateIframeContent(previewHtmlContent, iframeRef)}
+              />
             </div>
           </Panel>
           <PanelResizeHandle className="w-2 bg-gray-200 transition-colors hover:bg-gray-300" />

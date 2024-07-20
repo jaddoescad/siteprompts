@@ -207,9 +207,11 @@ interface ProjectEditorProps {
     const updateFullHTMLContent = (newContent) => {
       const isValidHtml = /^<[^>]+>[\s\S]*<\/[^>]+>$/.test(newContent.trim());
 
+      var content = newContent.trim();
+
       if (!isValidHtml && newContent.trim() !== "") {
         // Wrap the content in a div if it's not valid HTML
-        newContent = `<div>${newContent}</div>`;
+        content = `<div>${newContent}</div>`;
       }
 
       const doc = new DOMParser().parseFromString(
@@ -221,7 +223,7 @@ interface ProjectEditorProps {
         currentState.selectedNodePath.length === 1 && currentState.selectedNodePath[0] === 1;
 
       if (isUpdatingEntireBody) {
-        doc.body.innerHTML = newContent;
+        doc.body.innerHTML = content;
       } else {
         let targetElement = doc.body;
         let parentElement = doc.body;
@@ -232,7 +234,7 @@ interface ProjectEditorProps {
           const nextElement = targetElement.children[childIndex] as HTMLElement;
 
           if (!nextElement) {
-            parentElement.innerHTML += newContent;
+            parentElement.innerHTML += content;
             break;
           }
 
@@ -241,14 +243,14 @@ interface ProjectEditorProps {
         }
         // Check if we should insert before the target element
         if (
-          newContent.trim() !== "" &&
+          content.trim() !== "" &&
           previousEditorContentRef.current.trim() === "" &&
           targetElement !== parentElement
         ) {
-          targetElement.insertAdjacentHTML("beforebegin", newContent);
+          targetElement.insertAdjacentHTML("beforebegin", content);
         } else if (targetElement !== parentElement) {
           // Update the target element if it exists and we're not inserting before it
-          targetElement.outerHTML = newContent;
+          targetElement.outerHTML = content;
         }
       }
       const updatedHtmlContent = doc.body.innerHTML;
@@ -256,6 +258,7 @@ interface ProjectEditorProps {
       // Update the full HTML content
       setEditorState({
         ...currentState,
+        selectedNodeContent: newContent,
         htmlContent: updatedHtmlContent
       });
       setPreviewHtmlContent(updatedHtmlContent);
@@ -345,13 +348,11 @@ interface ProjectEditorProps {
             updateFullHTMLContent(newSelectedNodeContent);
           } else {
             // setSelectedNodeContent(result);
-            setEditorState({
-              ...currentState,
-              selectedNodeContent: result,
-            });
+            setEditorKey((prevKey) => prevKey + 1);
             updateFullHTMLContent(result);
+
           }
-          editorRef.current.setValue(result);
+          // editorRef.current.setValue(result);
         } catch (error) {
           console.error("Error calling Claude API:", error);
           alert("Error calling Claude API");
@@ -371,6 +372,11 @@ interface ProjectEditorProps {
         }
       },
     });
+
+    useEffect(() => {
+      console.log(currentState.selectedNodeContent);
+    }
+    , [currentState.selectedNodeContent]);
 
     return (
       <>
@@ -397,16 +403,34 @@ interface ProjectEditorProps {
             <div className="h-full p-4 overflow-hidden">
               <iframe
                 srcDoc={`
-                <!DOCTYPE html>
-                <html>
-                  <head>
-                    <style>
-                      body { margin: 0; padding: 0; }
-                    </style>
-                  </head>
-                  <body>${previewHtmlContent}</body>
-                </html>
-              `}
+                  <!DOCTYPE html>
+                  <html>
+                    <head>
+                      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                      <style>
+                        body {
+                          margin: 0;
+                          padding: 0;
+                          width: 100%;
+                          height: 100%;
+                          box-sizing: border-box;
+                          font-family: 'Roboto', sans-serif;
+                        }
+                        #content-wrapper {
+                          max-width: 100%;
+                          margin: 0 auto;
+                          padding: 0 16px;
+                          box-sizing: border-box;
+                        }
+                      </style>
+                    </head>
+                    <body>
+                      <div id="content-wrapper">
+                        ${previewHtmlContent}
+                      </div>
+                    </body>
+                  </html>
+                `}
                 style={{ width: "100%", height: "100%", border: "none" }}
                 title="Preview"
               />
@@ -449,7 +473,11 @@ interface ProjectEditorProps {
                   height="100%"
                   language="html"
                   theme="vs-dark"
-                  value={isParentMode ? parentContent : currentState.selectedNodeContent}
+                  value={
+                    isParentMode
+                      ? parentContent
+                      : currentState.selectedNodeContent
+                  }
                   onChange={handleEditorChange}
                   onMount={handleEditorDidMount}
                   key={editorKey}

@@ -22,7 +22,7 @@ export const highlightElementUtil = (htmlContent, path) => {
   }
   
   if (currentElement) {
-    currentElement.style.border = '2px solid red';
+    currentElement.style.boxShadow = 'inset 0 0 0 2px red';
   }
   
   return doc.body.innerHTML;

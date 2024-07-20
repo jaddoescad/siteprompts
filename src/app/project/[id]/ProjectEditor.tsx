@@ -71,6 +71,7 @@ loader.config({
     const [isInitialLoad, setIsInitialLoad] = useState(false);
     const [editorKey, setEditorKey] = useState(0);
     const previousEditorContentRef = useRef(initialHtmlContent);
+    const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set(["1"]));
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const editorRef = useRef(null);
 
@@ -284,7 +285,13 @@ loader.config({
       replace: (domNode) => {
         if (domNode instanceof Element && domNode.type === "tag") {
           return (
-            <TreeNode node={domNode} onNodeClick={handleNodeClick} path="1" />
+            <TreeNode
+              node={domNode}
+              onNodeClick={handleNodeClick}
+              path="1"
+              expandedNodes={expandedNodes}
+              setExpandedNodes={setExpandedNodes}
+            />
           );
         }
       },

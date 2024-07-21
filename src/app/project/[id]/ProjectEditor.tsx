@@ -109,6 +109,7 @@ loader.config({
 
     const handleNodeClick = (node, path) => {
       const content = getNodeContent(node);
+      previousEditorContentRef.current = content;
       const newPath = path.split("-").map(Number);
 
       setEditorState({

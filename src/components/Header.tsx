@@ -10,6 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import Image from "next/image";
 
 const supabase = createClient();
 
@@ -38,19 +39,17 @@ const Header = () => {
   };
 
   return (
-    <header className="bg-gray-800 text-white p-4">
+    <header className="bg-black text-white p-4">
       <div className="flex justify-between items-center">
-        <Link href="/" className="text-xl font-bold">
-          BlockAI
-        </Link>
+        <Image src="/logo.png" alt="SitePrompts Logo" width={162} height={162} />
         <nav>
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger className="flex items-center space-x-2">
                 {user.user_metadata.avatar_url ? (
-                  <img 
-                    src={user.user_metadata.avatar_url} 
-                    alt="User avatar" 
+                  <img
+                    src={user.user_metadata.avatar_url}
+                    alt="User avatar"
                     className="w-8 h-8 rounded-full"
                   />
                 ) : (
@@ -63,7 +62,7 @@ const Header = () => {
                   <span className="text-sm text-gray-700">{user.email}</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
-                  <button 
+                  <button
                     onClick={handleSignOut}
                     className="text-sm text-red-600"
                   >
@@ -73,7 +72,10 @@ const Header = () => {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Link href="/auth/login" className="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded">
+            <Link
+              href="/auth/login"
+              className="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded"
+            >
               Sign In
             </Link>
           )}

@@ -341,7 +341,7 @@ loader.config({
       <>
         <Header />
         <PanelGroup direction="horizontal">
-          <Panel minSize={20}>
+          <Panel minSize={5}>
             <Tabs defaultValue="tree" className="w-full h-full flex flex-col">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="tree">Tree</TabsTrigger>
@@ -403,7 +403,7 @@ loader.config({
             </div>
           </Panel>
           <PanelResizeHandle className="w-2 bg-gray-200 transition-colors hover:bg-gray-300" />
-          <Panel minSize={20}>
+          <Panel minSize={5}>
             <div className="flex h-full flex-col overflow-hidden bg-gray-100">
               <div className="flex items-center p-4 bg-gray-200">
                 <Switch

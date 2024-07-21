@@ -22,7 +22,7 @@ const ImageModal = ({ isOpen, onClose, imageUrl }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[80vw] sm:max-h-[80vh] p-0 bg-white overflow-hidden">
+      <DialogContent className="sm:max-w-[80vw] sm:max-h-[80vh] p-0 bg-white">
         <div className="relative w-full h-full flex items-center justify-center">
           {loading && (
             <div className="absolute inset-0 flex items-center justify-center bg-white">
@@ -139,7 +139,7 @@ export const FilesView = () => {
   };
 
   return (
-    <div className="p-4">
+    <div className="p-4 h-full flex flex-col">
       <h2 className="text-lg font-semibold mb-4">Files</h2>
       <div className="mb-4">
         <input
@@ -155,51 +155,53 @@ export const FilesView = () => {
           <Upload className="ml-2 h-4 w-4" />
         </Button>
       </div>
-      <ul className="space-y-4">
-        {files.map((file) => (
-          <li key={file.name} className="flex items-center justify-between bg-gray-100 p-2 rounded">
-            <div className="flex items-center cursor-pointer" onClick={() => handleImageClick(file.url)}>
-              <img 
-                src={file.url} 
-                alt={file.name} 
-                className="w-12 h-12 object-cover rounded mr-3"
-              />
-              <span>{file.name}</span>
-            </div>
-            <div className="flex items-center">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleCopyUrl(file.url);
-                      }}
-                    >
-                      {copiedUrl === file.url ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{copiedUrl === file.url ? 'Copied!' : 'Copy URL'}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDelete(file.name);
-                }}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          </li>
-        ))}
-      </ul>
+      <div className="flex-grow overflow-y-auto">
+        <ul className="space-y-4">
+          {files.map((file) => (
+            <li key={file.name} className="flex items-center justify-between bg-gray-100 p-2 rounded">
+              <div className="flex items-center cursor-pointer" onClick={() => handleImageClick(file.url)}>
+                <img 
+                  src={file.url} 
+                  alt={file.name} 
+                  className="w-12 h-12 object-cover rounded mr-3"
+                />
+                <span>{file.name}</span>
+              </div>
+              <div className="flex items-center">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCopyUrl(file.url);
+                        }}
+                      >
+                        {copiedUrl === file.url ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{copiedUrl === file.url ? 'Copied!' : 'Copy URL'}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete(file.name);
+                  }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
       <ImageModal 
         isOpen={!!selectedImage} 
         onClose={() => setSelectedImage(null)} 

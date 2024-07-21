@@ -28,3 +28,16 @@ export async function saveHtmlContent(projectId, content) {
     throw error;
   }
 }
+
+export async function addEmailToList(email) {
+  const { data, error } = await supabase
+    .from('email_list')
+    .insert([{ email: email }]);
+
+  if (error) {
+    console.error('Error adding email to list:', error);
+    throw error;
+  }
+
+  return data;
+}

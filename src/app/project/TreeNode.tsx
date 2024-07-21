@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus } from "lucide-react";
 
 interface TreeNodeProps {
   node: any;
@@ -7,6 +7,7 @@ interface TreeNodeProps {
   path: string;
   expandedNodes: Set<string>;
   setExpandedNodes: React.Dispatch<React.SetStateAction<Set<string>>>;
+  onAddSibling: (path: string) => void;
 }
 
 export const TreeNode: React.FC<TreeNodeProps> = ({ 
@@ -14,7 +15,8 @@ export const TreeNode: React.FC<TreeNodeProps> = ({
   onNodeClick, 
   path, 
   expandedNodes, 
-  setExpandedNodes 
+  setExpandedNodes,
+  onAddSibling
 }) => {
   const hasChildren = node.children && node.children.length > 0;
   const isOpen = expandedNodes.has(path);
@@ -43,6 +45,11 @@ export const TreeNode: React.FC<TreeNodeProps> = ({
     onNodeClick(node, path);
   };
 
+  const handleAddSibling = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onAddSibling(path);
+  };
+
   if (node.type === "text") {
     return node.data.trim() ? (
       <div className="ml-4 text-gray-600">{node.data}</div>
@@ -62,6 +69,9 @@ export const TreeNode: React.FC<TreeNodeProps> = ({
         <span className="cursor-pointer text-blue-600" onClick={handleClick}>
           &lt;{node.name}&gt; ({path})
         </span>
+        <button onClick={handleAddSibling} className="ml-2 text-green-500" title="Add sibling div">
+          <Plus size={16} />
+        </button>
       </div>
       {isOpen && hasChildren && (
         <div className="ml-4">
@@ -77,6 +87,7 @@ export const TreeNode: React.FC<TreeNodeProps> = ({
                 path={`${path}-${idx + 1}`}
                 expandedNodes={expandedNodes}
                 setExpandedNodes={setExpandedNodes}
+                onAddSibling={onAddSibling}
               />
             ))}
         </div>

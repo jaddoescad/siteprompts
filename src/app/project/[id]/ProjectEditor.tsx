@@ -280,6 +280,44 @@ loader.config({
       }
     };
 
+    const handleAddSibling = (path: string) => {
+      const newContent = addSiblingDivToHtmlContent(currentState.htmlContent, path);
+      setEditorState({
+        ...currentState,
+        htmlContent: newContent,
+      });
+    };
+    
+    // Helper function to add a sibling div to the HTML content
+    const addSiblingDivToHtmlContent = (htmlContent: string, path: string): string => {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(htmlContent, 'text/html');
+      
+      const pathArray = path.split('-').map(Number);
+      let parentElement: Element | null = doc.body;
+      let targetElement: Element | null = doc.body;
+    
+      // Navigate to the parent of the target element
+      for (let i = 1; i < pathArray.length - 1; i++) {
+        if (parentElement && parentElement.children) {
+          parentElement = parentElement.children[pathArray[i] - 1] as Element;
+        }
+      }
+    
+      // Get the target element
+      if (parentElement && parentElement.children) {
+        targetElement = parentElement.children[pathArray[pathArray.length - 1] - 1] as Element;
+      }
+    
+      if (parentElement && targetElement) {
+        const newDiv = doc.createElement('div');
+        newDiv.textContent = 'New Sibling Div';
+        parentElement.insertBefore(newDiv, targetElement.nextSibling);
+      }
+    
+      return doc.body.innerHTML;
+    };
+
     // In the ProjectEditor component, update the parsedContent generation:
     const parsedContent = parse(`<body>${currentState.htmlContent}</body>`, {
       replace: (domNode) => {
@@ -291,6 +329,7 @@ loader.config({
               path="1"
               expandedNodes={expandedNodes}
               setExpandedNodes={setExpandedNodes}
+              onAddSibling={handleAddSibling}
             />
           );
         }

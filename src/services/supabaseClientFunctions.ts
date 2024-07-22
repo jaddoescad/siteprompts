@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/client';
 
 const supabase = createClient();
 
-export async function fetchHtmlContent(projectId) {
+export async function fetchHtmlContent(projectId: string) {
   const { data, error } = await supabase
     .from('projects')
     .select('html_content')
@@ -17,7 +17,7 @@ export async function fetchHtmlContent(projectId) {
   return data?.html_content || '';
 }
 
-export async function saveHtmlContent(projectId, content) {
+export async function saveHtmlContent(projectId: string, content: string) {
   const { error } = await supabase
     .from('projects')
     .update({ html_content: content })
@@ -29,7 +29,7 @@ export async function saveHtmlContent(projectId, content) {
   }
 }
 
-export async function addEmailToList(email) {
+export async function addEmailToList(email: string) {
   const { data, error } = await supabase
     .from('email_list')
     .insert([{ email: email }]);

@@ -32,7 +32,7 @@ const App = () => {
     <div>
       <div className="flex justify-between items-center p-4 bg-white">
         <div className="text-2xl font-bold text-gray-800 flex items-center">
-          <img src="https://gdtffvonnguufizhazwx.supabase.co/storage/v1/object/public/test/11cee88b-c974-4ddf-a7b1-58c775dfc37e.png" alt="Logo" className="h-6 w-auto mr-2" />
+          <img src="https://gdtffvonnguufizhazwx.supabase.co/storage/v1/object/public/SitePromptsAssets/logo.png" alt="Logo" className="h-6 w-auto mr-2" />
         </div>
         <button className="bg-gradient-to-r from-cyan-500 to-green-500 text-white font-bold py-3 px-5 rounded-md transition duration-300 ease-in-out hover:opacity-90">
           Coming Soon
@@ -48,7 +48,7 @@ const App = () => {
         </h2>
         <div className="flex flex-col items-center p-[60px_40px_40px_40px]">
           <div className="relative rounded-lg shadow-md p-[60px_20px_20px_20px] bg-gray-100">
-            <img src="https://gdtffvonnguufizhazwx.supabase.co/storage/v1/object/public/test/00915955-9790-4660-acc6-cefb91a11884.gif" className="rounded-lg max-w-full h-auto" />
+            <img src="https://gdtffvonnguufizhazwx.supabase.co/storage/v1/object/public/SitePromptsAssets/rtst-ezgif.com-video-to-gif-converter.gif" className="rounded-lg max-w-full h-auto" />
             <div className="absolute top-5 left-5 flex gap-1.5 pb-2.5">
               <div className="w-3 h-3 rounded-full bg-[#ff605c]"></div>
               <div className="w-3 h-3 rounded-full bg-[#ffbd44]"></div>
